@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Engineering Dashboard</title>
+    <script src="https://tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <header class="mb-8 border-b border-gray-800 pb-4">
+            <h1 class="text-3xl font-bold text-emerald-400">Enterprise Product Inventory</h1>
+            <p class="text-gray-400 text-sm">Engineered with Python, Django, and HTMX</p>
+        </header>
+
+        <main class="bg-gray-800 rounded-xl p-6 shadow-2xl border border-gray-700">
+            <h2 class="text-xl font-semibold mb-4 text-emerald-300">Live Database Items</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-gray-700 text-gray-400 text-sm">
+                            <th class="pb-3 font-medium">Product ID</th>
+                            <th class="pb-3 font-medium">Item Name</th>
+                            <th class="pb-3 font-medium">Price (USD)</th>
+                            <th class="pb-3 font-medium">Stock Levels</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-700 text-sm">
+                        {% for product in products %}
+                        <tr class="hover:bg-gray-750 transition">
+                            <td class="py-4 text-gray-500">#{{ product.id }}</td>
+                            <td class="py-4 font-semibold text-white">{{ product.name }}</td>
+                            <td class="py-4 text-emerald-400">${{ product.price }}</td>
+                            <td class="py-4">
+                                <span class="px-2 py-1 bg-gray-700 rounded text-xs text-gray-300">
+                                    {{ product.stock }} units
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="py-8 text-center text-gray-500 italic">No products registered in the database yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
