@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Enterprise Engineering Dashboard</title>
     <script src="https://tailwindcss.com"></script>
+    <script src="https://unpkg.com"></script>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen p-8">
     <div class="max-w-4xl mx-auto">
@@ -13,6 +14,40 @@
             <p class="text-gray-400 text-sm">Engineered with Python, Django, and HTMX</p>
         </header>
 
+        <!-- Interactive Creation Input Form -->
+        <section class="bg-gray-800 rounded-xl p-6 mb-8 border border-gray-700 shadow-xl">
+            <h2 class="text-xl font-semibold mb-4 text-emerald-300">Register New Inventory Item</h2>
+            
+            <!-- hx-post: Submits data in the background silently -->
+            <!-- hx-target: Tells HTMX to dump the returned HTML row into our table body -->
+            <!-- hx-swap: Appends the new row onto the end of the existing list -->
+            <!-- hx-on::after-request: Clears the form inputs cleanly upon successful submission -->
+            <form hx-post="/api/products/dashboard/create/" 
+                  hx-target="#product-table-body" 
+                  hx-swap="beforeend"
+                  hx-on::after-request="this.reset()"
+                  class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs uppercase font-medium text-gray-400 mb-1">Item Name</label>
+                    <input type="text" name="name" required class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs uppercase font-medium text-gray-400 mb-1">Price (USD)</label>
+                    <input type="number" step="0.01" name="price" required class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs uppercase font-medium text-gray-400 mb-1">Stock Units</label>
+                    <input type="number" name="stock" required class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
+                </div>
+                <div class="md:col-span-3 text-right">
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-6 py-2 rounded text-sm transition">
+                        Add Item to Inventory
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Product Table Display Box -->
         <main class="bg-gray-800 rounded-xl p-6 shadow-2xl border border-gray-700">
             <h2 class="text-xl font-semibold mb-4 text-emerald-300">Live Database Items</h2>
             <div class="overflow-x-auto">
@@ -23,24 +58,31 @@
                             <th class="pb-3 font-medium">Item Name</th>
                             <th class="pb-3 font-medium">Price (USD)</th>
                             <th class="pb-3 font-medium">Stock Levels</th>
+                            <th class="pb-3 font-medium">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-700 text-sm">
+                    <!-- ID added here so HTMX can target this body cleanly -->
+                    <tbody id="product-table-body" class="divide-y divide-gray-700 text-sm">
                         {% for product in products %}
-                        <tr class="hover:bg-gray-750 transition">
+                        <tr class="hover:bg-gray-750 transition" hx-target="this" hx-swap="outerHTML">
                             <td class="py-4 text-gray-500">#{{ product.id }}</td>
                             <td class="py-4 font-semibold text-white">{{ product.name }}</td>
                             <td class="py-4 text-emerald-400">${{ product.price }}</td>
                             <td class="py-4">
-                                <span class="px-2 py-1 bg-gray-700 rounded text-xs text-gray-300">
+                                <span class="px-2 py-1 bg-gray-700 rounded text-xs font-mono text-gray-300">
                                     {{ product.stock }} units
                                 </span>
                             </td>
+                            <td class="py-4">
+                                <button hx-delete="/api/products/dashboard/delete/{{ product.id }}/" 
+                                        hx-confirm="Are you sure you want to delete this item?"
+                                        class="bg-red-900/50 text-red-400 hover:bg-red-900 px-3 py-1 rounded text-xs transition font-medium">
+                                    Delete
+                                </button>
+                            </td>
                         </tr>
                         {% empty %}
-                        <tr>
-                            <td colspan="4" class="py-8 text-center text-gray-500 italic">No products registered in the database yet.</td>
-                        </tr>
+                        <!-- This row will disappear as items get appended -->
                         {% endfor %}
                     </tbody>
                 </table>
