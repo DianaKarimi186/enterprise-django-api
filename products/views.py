@@ -1,54 +1,16 @@
+from django.shortcuts import render
+from django.views import View
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from rest_framework import generics
 from .models import Product
 from .serializers import ProductSerializer
 from .tasks import simulate_heavy_background_job
-from django.shortcuts import render
-from django.views import View
-from django.template.loader import render_to_string
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse
 
-@method_decorator(csrf_exempt, name='dispatch')
-class HTMXCreateProductView(View):
-    def post(self, request):
-        # Extract the native form fields sent by the browser
-        name = request.POST.get('name')
-        price = request.POST.get('price')
-        stock = request.POST.get('stock')
-        description = request.POST.get('description', '')
-
-        # Insert record safely into the database table
-        product = Product.objects.create(
-            name=name,
-            price=price,
-            stock=stock,
-            description=description
-        )
-
-        # Trigger your Celery task asynchronously in the background!
-        simulate_heavy_background_job.delay(product.name)
-
-        # Render JUST a single partial table row to send back to HTMX
-        context = {'product': product}
-        html_row = render_to_string('templates/products/partials/product_row.html', context)
-        return HttpResponse(html_row)
-    
-@method_decorator(csrf_exempt, name='dispatch')
-class DeleteProductView(View):
-    def delete(self, request, pk):
-        # Locate the specific item using its database primary key (pk)
-        product = Product.objects.filter(pk=pk).first()
-        if product:
-            product.delete()
-        
-        # Return an empty string. When HTMX receives a 200 OK with no text,
-        # it automatically removes that row from the screen!
-        return HttpResponse("")
-
-
+# --- Month 1 Rest API Views (For Mobile/Third-Party Clients) ---
 class ProductListCreateView(generics.ListCreateAPIView):
-    # OPTIMIZATION FIX: select_related performs a SQL JOIN to pull categories instantly in 1 query!
     queryset = Product.objects.select_related('category').all()
     serializer_class = ProductSerializer
 
@@ -57,12 +19,56 @@ class ProductListCreateView(generics.ListCreateAPIView):
         simulate_heavy_background_job.delay(instance.name)
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
-    # OPTIMIZATION FIX: Optimized single item lookup queries
     queryset = Product.objects.select_related('category').all()
     serializer_class = ProductSerializer
+
+
+# --- Month 2 HTMX Frontend Views (For Browser Controls) ---
 class DashboardView(View):
+    """Renders the main visual interface panel showing all database objects"""
     def get(self, request):
         products = Product.objects.select_related('category').all()
-        return render(request, 'products/dashboard.html', {
-            'products': products
-        })
+        return render(request, 'products/templates/dashboard.html', {'products': products})
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class HTMXCreateProductView(View):
+    """Captures form inputs from the browser frontend and writes them to the database"""
+    def post(self, request):
+        # Extract native string parameters from the browser form payload
+        name = request.POST.get('name')
+        price = request.POST.get('price')
+        stock = request.POST.get('stock')
+        description = request.POST.get('description', '')
+
+        # CRITICAL VALIDATION: Ensure we don't save empty rows
+        if not name or not price or not stock:
+            return HttpResponse("Missing required form data fields.", status=400)
+
+        # WRITE DIRECTLY TO THE SQL DATABASE
+        product = Product.objects.create(
+            name=name,
+            price=price,
+            stock=stock,
+            description=description
+        )
+
+        # Trigger your containerized Celery worker task asynchronously
+        simulate_heavy_background_job.delay(product.name)
+
+        # Render the fresh data row to send back to the user view screen
+        context = {'product': product}
+        html_row = render_to_string('products/templates/products/partials/product_row.html', context)
+        return HttpResponse(html_row)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class DeleteProductView(View):
+    """Locates a database item by its primary key (ID) and destroys the record"""
+    def delete(self, request, pk):
+        product = Product.objects.filter(pk=pk).first()
+        if product:
+            product.delete()
+        
+        # An empty response tells HTMX to completely remove the row from the screen
+        return HttpResponse("")

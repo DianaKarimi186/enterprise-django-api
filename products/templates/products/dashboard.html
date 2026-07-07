@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enterprise Engineering Dashboard</title>
+    <title>Enterprise Engineering Control Dashboard</title>
     <script src="https://tailwindcss.com"></script>
     <script src="https://unpkg.com"></script>
 </head>
@@ -14,19 +14,16 @@
             <p class="text-gray-400 text-sm">Engineered with Python, Django, and HTMX</p>
         </header>
 
-        <!-- Interactive Creation Input Form -->
+        <!-- Product Registration Form -->
         <section class="bg-gray-800 rounded-xl p-6 mb-8 border border-gray-700 shadow-xl">
             <h2 class="text-xl font-semibold mb-4 text-emerald-300">Register New Inventory Item</h2>
             
-            <!-- hx-post: Submits data in the background silently -->
-            <!-- hx-target: Tells HTMX to dump the returned HTML row into our table body -->
-            <!-- hx-swap: Appends the new row onto the end of the existing list -->
-            <!-- hx-on::after-request: Clears the form inputs cleanly upon successful submission -->
             <form hx-post="/api/products/dashboard/create/" 
                   hx-target="#product-table-body" 
                   hx-swap="beforeend"
                   hx-on::after-request="this.reset()"
                   class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                
                 <div>
                     <label class="block text-xs uppercase font-medium text-gray-400 mb-1">Item Name</label>
                     <input type="text" name="name" required class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
@@ -47,7 +44,7 @@
             </form>
         </section>
 
-        <!-- Product Table Display Box -->
+        <!-- Live Inventory Table -->
         <main class="bg-gray-800 rounded-xl p-6 shadow-2xl border border-gray-700">
             <h2 class="text-xl font-semibold mb-4 text-emerald-300">Live Database Items</h2>
             <div class="overflow-x-auto">
@@ -61,7 +58,6 @@
                             <th class="pb-3 font-medium">Actions</th>
                         </tr>
                     </thead>
-                    <!-- ID added here so HTMX can target this body cleanly -->
                     <tbody id="product-table-body" class="divide-y divide-gray-700 text-sm">
                         {% for product in products %}
                         <tr class="hover:bg-gray-750 transition" hx-target="this" hx-swap="outerHTML">
@@ -81,8 +77,6 @@
                                 </button>
                             </td>
                         </tr>
-                        {% empty %}
-                        <!-- This row will disappear as items get appended -->
                         {% endfor %}
                     </tbody>
                 </table>
