@@ -4,25 +4,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Enterprise Engineering Control Dashboard</title>
-    <script src="https://tailwindcss.com"></script>
-    <script src="https://unpkg.com"></script>
+    <script src="https://unpkg.com/htmx.org@2.0.8"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen p-8">
+
+<body
+    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+    class="bg-gray-900 text-gray-100 min-h-screen p-8">
     <div class="max-w-4xl mx-auto">
         <header class="mb-8 border-b border-gray-800 pb-4">
+            <style>
+                .htmx-request .submit-label {
+                    display: none;
+                }
+
+                .htmx-indicator {
+                    display: none;
+                }
+
+                .htmx-request .htmx-indicator {
+                    display: inline;
+                }
+            </style>
             <h1 class="text-3xl font-bold text-emerald-400">Enterprise Product Inventory</h1>
             <p class="text-gray-400 text-sm">Engineered with Python, Django, and HTMX</p>
+            <div id="notification-container" class="mb-4"></div>
         </header>
 
         <!-- Product Registration Form -->
         <section class="bg-gray-800 rounded-xl p-6 mb-8 border border-gray-700 shadow-xl">
             <h2 class="text-xl font-semibold mb-4 text-emerald-300">Register New Inventory Item</h2>
-            
-            <form hx-post="/api/products/dashboard/create/" 
-                  hx-target="#product-table-body" 
-                  hx-swap="beforeend"
-                  hx-on::after-request="this.reset()"
-                  class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div id="form-error-container" class="mb-4"></div>
+            <form
+                hx-post="/api/products/dashboard/create/"
+                hx-target="#product-table-body"
+                hx-swap="beforeend"
+                hx-on::after-request="
+                    if(event.detail.successful) {
+                        this.reset();
+                        document.getElementById('form-error-container').innerHTML = '';
+                    }
+                "
+                hx-on::response-error="
+                    document.getElementById('form-error-container').innerHTML =
+                    event.detail.xhr.responseText;
+                "
+                class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                {% csrf_token %}
                 
                 <div>
                     <label class="block text-xs uppercase font-medium text-gray-400 mb-1">Item Name</label>
@@ -37,8 +67,17 @@
                     <input type="number" name="stock" required class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
                 </div>
                 <div class="md:col-span-3 text-right">
-                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-6 py-2 rounded text-sm transition">
-                        Add Item to Inventory
+                    <button type="submit"
+                            class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-6 py-2 rounded text-sm transition">
+
+                        <span class="htmx-indicator">
+                            Processing...
+                        </span>
+
+                        <span class="submit-label">
+                            Add Item to Inventory
+                        </span>
+
                     </button>
                 </div>
             </form>
@@ -58,30 +97,69 @@
                             <th class="pb-3 font-medium">Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="product-table-body" class="divide-y divide-gray-700 text-sm">
+                    <tbody id="product-table-body"
+                        class="divide-y divide-gray-700 text-sm">
+
                         {% for product in products %}
-                        <tr class="hover:bg-gray-750 transition" hx-target="this" hx-swap="outerHTML">
-                            <td class="py-4 text-gray-500">#{{ product.id }}</td>
-                            <td class="py-4 font-semibold text-white">{{ product.name }}</td>
-                            <td class="py-4 text-emerald-400">${{ product.price }}</td>
-                            <td class="py-4">
-                                <span class="px-2 py-1 bg-gray-700 rounded text-xs font-mono text-gray-300">
-                                    {{ product.stock }} units
-                                </span>
-                            </td>
-                            <td class="py-4">
-                                <button hx-delete="/api/products/dashboard/delete/{{ product.id }}/" 
-                                        hx-confirm="Are you sure you want to delete this item?"
-                                        class="bg-red-900/50 text-red-400 hover:bg-red-900 px-3 py-1 rounded text-xs transition font-medium">
-                                    Delete
-                                </button>
-                            </td>
-                        </tr>
+
+                            {% include "products/partials/products_row.html" %}
+
+                        {% empty %}
+
+                            {% include "products/partials/empty_table.html" %}
+
                         {% endfor %}
+
                     </tbody>
                 </table>
             </div>
         </main>
     </div>
+    <script>
+        document.body.addEventListener('htmx:responseError', function (event) {
+            const errorContainer = document.getElementById(
+                'form-error-container'
+            );
+
+            errorContainer.innerHTML = event.detail.xhr.responseText;
+        });
+
+        document.body.addEventListener('htmx:afterRequest', function (event) {
+            const form = event.detail.elt;
+
+            if (!form.matches('form[hx-post]')) {
+                return;
+            }
+
+            if (event.detail.successful) {
+                const notificationContainer = document.getElementById(
+                    'notification-container'
+                );
+
+                const emptyState = document.getElementById(
+                    'empty-table-state'
+                );
+
+                if (emptyState) {
+                    emptyState.remove();
+                }
+
+                notificationContainer.innerHTML = `
+                    <div class="bg-emerald-900/50 border border-emerald-700
+                                text-emerald-300 rounded-lg p-4 text-sm">
+                        ✓ Inventory item added successfully.
+                    </div>
+                `;
+
+                document.getElementById(
+                    'form-error-container'
+                ).innerHTML = '';
+
+                setTimeout(function () {
+                    notificationContainer.innerHTML = '';
+                }, 3000);
+            }
+        });
+    </script>
 </body>
 </html>

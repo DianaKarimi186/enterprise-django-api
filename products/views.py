@@ -1,13 +1,13 @@
 from django.shortcuts import render
 from django.views import View
 from django.http import HttpResponse
-from django.template.loader import render_to_string
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
 from rest_framework import generics
 from .models import Product
 from .serializers import ProductSerializer
 from .tasks import simulate_heavy_background_job
+from decimal import Decimal, InvalidOperation
+from django.core.cache import cache
+INVENTORY_CACHE_KEY = "inventory_products"
 
 # --- Month 1 Rest API Views (For Mobile/Third-Party Clients) ---
 class ProductListCreateView(generics.ListCreateAPIView):
@@ -23,52 +23,152 @@ class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ProductSerializer
 
 
-# --- Month 2 HTMX Frontend Views (For Browser Controls) ---
 class DashboardView(View):
-    """Renders the main visual interface panel showing all database objects"""
     def get(self, request):
-        products = Product.objects.select_related('category').all()
-        return render(request, 'products/templates/dashboard.html', {'products': products})
+        products = cache.get(INVENTORY_CACHE_KEY)
+
+        if products is None:
+            print("CACHE MISS → Querying database")
+
+            products = list(
+                Product.objects
+                .select_related("category")
+                .all()
+            )
+
+            cache.set(
+                INVENTORY_CACHE_KEY,
+                products,
+                timeout=300
+            )
+
+        else:
+            print("CACHE HIT → Using Redis")
+
+        return render(
+            request,
+            "products/dashboard.html",
+            {"products": products}
+        )
 
 
-@method_decorator(csrf_exempt, name='dispatch')
 class HTMXCreateProductView(View):
-    """Captures form inputs from the browser frontend and writes them to the database"""
     def post(self, request):
-        # Extract native string parameters from the browser form payload
-        name = request.POST.get('name')
+        name = request.POST.get('name', '').strip()
         price = request.POST.get('price')
         stock = request.POST.get('stock')
         description = request.POST.get('description', '')
 
-        # CRITICAL VALIDATION: Ensure we don't save empty rows
-        if not name or not price or not stock:
-            return HttpResponse("Missing required form data fields.", status=400)
+        if not name:
+            return render(
+                request,
+                'products/partials/form_errors.html',
+                {'error_message': 'Product name is required.'},
+                status=422
+            )
 
-        # WRITE DIRECTLY TO THE SQL DATABASE
+        try:
+            price = Decimal(price)
+
+            if price <= 0:
+                raise ValueError
+
+        except (InvalidOperation, TypeError, ValueError):
+            return render(
+                request,
+                'products/partials/form_errors.html',
+                {'error_message': 'Price must be greater than zero.'},
+                status=422
+            )
+
+        try:
+            stock = int(stock)
+
+            if stock < 0:
+                raise ValueError
+
+        except (TypeError, ValueError):
+            return render(
+                request,
+                'products/partials/form_errors.html',
+                {'error_message': 'Stock cannot be negative.'},
+                status=422
+            )
+
         product = Product.objects.create(
             name=name,
             price=price,
             stock=stock,
             description=description
         )
+  
 
-        # Trigger your containerized Celery worker task asynchronously
         simulate_heavy_background_job.delay(product.name)
 
-        # Render the fresh data row to send back to the user view screen
-        context = {'product': product}
-        html_row = render_to_string('products/templates/products/partials/product_row.html', context)
-        return HttpResponse(html_row)
+        return render(
+            request,
+            'products/partials/products_row.html',
+            {'product': product}
+        )
 
-
-@method_decorator(csrf_exempt, name='dispatch')
 class DeleteProductView(View):
-    """Locates a database item by its primary key (ID) and destroys the record"""
     def delete(self, request, pk):
         product = Product.objects.filter(pk=pk).first()
+
         if product:
             product.delete()
-        
-        # An empty response tells HTMX to completely remove the row from the screen
+
+ 
+        if not Product.objects.exists():
+            return render(
+                request,
+                "products/partials/empty_table.html"
+            )
+
         return HttpResponse("")
+    
+
+class HTMXEditProductView(View):
+    """Returns the inline edit form for a single product."""
+
+    def get(self, request, pk):
+        product = Product.objects.get(pk=pk)
+
+        return render(
+            request,
+            'products/partials/product_edit_row.html',
+            {'product': product}
+        )
+
+class HTMXUpdateProductView(View):
+    """Updates a product and returns the refreshed table row."""
+
+    def put(self, request, pk):
+        from django.http import QueryDict
+
+        product = Product.objects.get(pk=pk)
+
+        data = QueryDict(request.body)
+
+        name = data.get('name')
+        price = data.get('price')
+        stock = data.get('stock')
+
+        if not name or price in (None, '') or stock in (None, ''):
+            return HttpResponse(
+                "Missing required fields.",
+                status=400
+            )
+
+        product.name = name
+        product.price = price
+        product.stock = stock
+        product.save()
+
+           
+
+        return render(
+            request,
+            'products/partials/products_row.html',
+            {'product': product}
+        )
