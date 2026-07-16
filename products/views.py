@@ -8,11 +8,33 @@ from .tasks import simulate_heavy_background_job
 from decimal import Decimal, InvalidOperation
 from django.core.cache import cache
 INVENTORY_CACHE_KEY = "inventory_products"
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
 
-# --- Month 1 Rest API Views (For Mobile/Third-Party Clients) ---
 class ProductListCreateView(generics.ListCreateAPIView):
-    queryset = Product.objects.select_related('category').all()
+    queryset = Product.objects.select_related("category").all()
     serializer_class = ProductSerializer
+
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+
+    filterset_fields = ["category"]
+
+    search_fields = [
+        "name",
+        "description",
+    ]
+
+    ordering_fields = [
+        "price",
+        "stock",
+        "name",
+    ]
+
+    ordering = ["name"]
 
     def perform_create(self, serializer):
         instance = serializer.save()
