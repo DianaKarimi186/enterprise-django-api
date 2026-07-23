@@ -7,42 +7,24 @@ from .serializers import ProductSerializer
 from .tasks import simulate_heavy_background_job
 from decimal import Decimal, InvalidOperation
 from django.core.cache import cache
-INVENTORY_CACHE_KEY = "inventory_products"
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
+from .permissions import IsOwnerOrReadOnly
+INVENTORY_CACHE_KEY = "inventory_products"
+
+
 
 class ProductListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+
+class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Product.objects.select_related("category").all()
     serializer_class = ProductSerializer
 
-    filter_backends = [
-        DjangoFilterBackend,
-        filters.SearchFilter,
-        filters.OrderingFilter,
-    ]
-
-    filterset_fields = ["category"]
-
-    search_fields = [
-        "name",
-        "description",
-    ]
-
-    ordering_fields = [
-        "price",
-        "stock",
-        "name",
-    ]
-
-    ordering = ["name"]
-
-    def perform_create(self, serializer):
-        instance = serializer.save()
-        simulate_heavy_background_job.delay(instance.name)
-
-class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Product.objects.select_related('category').all()
-    serializer_class = ProductSerializer
+    permission_classes = [ IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly,]
+    
 
 
 class DashboardView(View):
