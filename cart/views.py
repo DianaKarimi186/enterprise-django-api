@@ -70,3 +70,32 @@ class RemoveFromCartView(APIView):
             {"message": "Product removed"},
             status=status.HTTP_204_NO_CONTENT
         )
+    
+
+class UpdateCartQuantityView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, product_id):
+        quantity = request.data.get("quantity")
+
+        if quantity is None:
+            return Response(
+                {"error": "Quantity is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if int(quantity) < 1:
+            return Response(
+                {"error": "Quantity must be at least 1."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        update_quantity(
+            request.user,
+            product_id,
+            int(quantity),
+        )
+
+        return Response(
+            {"message": "Quantity updated successfully"}
+        )
