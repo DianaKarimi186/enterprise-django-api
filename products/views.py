@@ -11,17 +11,52 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from .permissions import IsOwnerOrReadOnly
+from rest_framework.parsers import MultiPartParser, FormParser
 INVENTORY_CACHE_KEY = "inventory_products"
 
 
 
 class ProductListCreateView(generics.ListCreateAPIView):
+    serializer_class = ProductSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+    parser_classes = [ MultiPartParser, FormParser, ]
 
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+
+    filterset_fields = ['category']
+
+    search_fields = [
+        'name',
+        'description'
+    ]
+
+    ordering_fields = [
+        'price',
+        'stock',
+        'created_at'
+    ]
+
+    def get_queryset(self):
+        return Product.objects.select_related(
+            "category",
+            "owner"
+        )
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Product.objects.select_related("category").all()
+    queryset = Product.objects.select_related(
+        "category",
+        "owner"
+    ).all()
     serializer_class = ProductSerializer
+
+    parser_classes = [ MultiPartParser, FormParser, ]
 
     permission_classes = [ IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly,]
     
@@ -103,7 +138,9 @@ class HTMXCreateProductView(View):
             name=name,
             price=price,
             stock=stock,
-            description=description
+            description=description,
+            owner=request.user,
+            category=some_category
         )
   
 
