@@ -19,9 +19,20 @@ def add_to_cart(user, product_id):
         product=product,
     )
 
-    if not created:
-        item.quantity += 1
-        item.save()
+    if created:
+        if product.stock < 1:
+            item.delete()
+            raise ValueError("This product is out of stock.")
+
+        return item
+
+    if item.quantity >= product.stock:
+        raise ValueError(
+            f"Only {product.stock} item(s) are available in stock."
+        )
+
+    item.quantity += 1
+    item.save()
 
     return item
 
@@ -34,6 +45,11 @@ def update_quantity(user, product_id, quantity):
         cart=cart,
         product_id=product_id,
     )
+
+    if quantity > item.product.stock:
+        raise ValueError(
+            f"Only {item.product.stock} item(s) are available in stock."
+        )
 
     item.quantity = quantity
     item.save()

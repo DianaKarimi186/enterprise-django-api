@@ -1,13 +1,11 @@
-from django.shortcuts import get_object_or_404
-
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Cart, CartItem
 from .serializers import CartSerializer
-from products.models import Product
+
+from .services import (get_or_create_cart, add_to_cart, remove_from_cart,update_quantity,)
 
 
 class CartView(generics.RetrieveAPIView):
@@ -15,66 +13,42 @@ class CartView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
-        cart, created = Cart.objects.get_or_create(
-            user=self.request.user
-        )
-        return cart
+        return get_or_create_cart(self.request.user)
 
 
 class AddToCartView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, product_id):
-        cart, created = Cart.objects.get_or_create(
-            user=request.user
-        )
+        try:
+            add_to_cart(request.user, product_id)
 
-        product = get_object_or_404(
-            Product,
-            id=product_id
-        )
+            return Response(
+                {"message": "Product added successfully"},
+                status=status.HTTP_200_OK,
+            )
 
-        item, created = CartItem.objects.get_or_create(
-            cart=cart,
-            product=product
-        )
-
-        if not created:
-            item.quantity += 1
-            item.save()
-
-        return Response(
-            {"message": "Product added to cart"},
-            status=status.HTTP_200_OK
-        )
+        except ValueError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class RemoveFromCartView(APIView):
     permission_classes = [IsAuthenticated]
 
     def delete(self, request, product_id):
-        cart = get_object_or_404(
-            Cart,
-            user=request.user
-        )
-
-        item = get_object_or_404(
-            CartItem,
-            cart=cart,
-            product_id=product_id
-        )
-
-        item.delete()
+        remove_from_cart(request.user, product_id)
 
         return Response(
-            {"message": "Product removed"},
-            status=status.HTTP_204_NO_CONTENT
+            {"message": "Product removed successfully"},
+                status=status.HTTP_204_NO_CONTENT,
         )
     
 
 class UpdateCartQuantityView(APIView):
     permission_classes = [IsAuthenticated]
-
     def patch(self, request, product_id):
         quantity = request.data.get("quantity")
 
@@ -84,18 +58,24 @@ class UpdateCartQuantityView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if int(quantity) < 1:
-            return Response(
-                {"error": "Quantity must be at least 1."},
-                status=status.HTTP_400_BAD_REQUEST,
+        try:
+            quantity = int(quantity)
+
+            if quantity < 1:
+                raise ValueError("Quantity must be at least 1.")
+
+            update_quantity(
+                request.user,
+                product_id,
+                quantity,
             )
 
-        update_quantity(
-            request.user,
-            product_id,
-            int(quantity),
-        )
+            return Response(
+                {"message": "Quantity updated successfully"}
+            )
 
-        return Response(
-            {"message": "Quantity updated successfully"}
-        )
+        except ValueError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )

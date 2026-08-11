@@ -1,30 +1,35 @@
+from django.contrib.auth.models import User
 from django.urls import reverse
+
 from rest_framework import status
 from rest_framework.test import APITestCase
-from .models import Product
 
 from django.test import TestCase
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
-
 from django.core.cache import cache
 
 from .models import Product, Category
 
-
-from django.test import TestCase
-from django.db import connection
-from django.test.utils import CaptureQueriesContext
-
-from .models import Product, Category
-
-
 class ProductAPITests(APITestCase):
 
     def setUp(self):
-        # This setup function runs before every single test case to populate data
-        self.list_create_url = reverse('product-list-create')
+        self.user = User.objects.create_user(
+            username="testuser",
+            password="Password123!"
+        )
+
+        self.list_create_url = reverse(
+            "product-list-create"
+        )
+
+        self.category = Category.objects.create(
+            name="Electronics"
+        )
+
         self.sample_product = Product.objects.create(
+            owner=self.user,
+            category=self.category,
             name="Test Drone",
             description="Testing automated loops",
             price=299.99,
@@ -32,40 +37,63 @@ class ProductAPITests(APITestCase):
         )
 
     def test_public_can_read_products_list(self):
-        """Verify that any anonymous user can perform a GET request on products"""
-        response = self.client.get(self.list_create_url)
-        
-        # We assert (expect) that the server responds with a 200 OK code
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # Check that our sample product is included in the returned data array
-        self.assertEqual(len(response.data), 1)
+        response = self.client.get(
+            self.list_create_url
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK
+        )
+
+        product_names = [
+            product["name"]
+            for product in response.data["results"]
+        ]
+
+        self.assertIn(
+            "Test Drone",
+            product_names
+        )
 
     def test_anonymous_user_cannot_create_product(self):
-        """Verify that our security layer blocks POST requests without a JWT token"""
         data = {
+            "category": self.category.id,
             "name": "Hacker Laptop",
+            "description": "Unauthorized product",
             "price": 1200.00,
             "stock": 1
         }
-        response = self.client.post(self.list_create_url, data, format='json')
-        
-        # We assert that the server correctly blocks the request with a 403 Forbidden code
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+        response = self.client.post(
+            self.list_create_url,
+            data,
+            format="json"
+        )
 
-
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_401_UNAUTHORIZED
+        )
 
 class ProductQueryPerformanceTest(TestCase):
 
     def setUp(self):
-        category = Category.objects.create(
+        self.user = User.objects.create_user(
+            username="queryuser",
+            password="Password123!"
+        )
+
+        self.category = Category.objects.create(
             name="Electronics"
         )
 
         for index in range(10):
             Product.objects.create(
-                category=category,
+                owner=self.user,
+                category=self.category,
                 name=f"Product {index}",
+                description=f"Description {index}",
                 price=100,
                 stock=10
             )
@@ -77,7 +105,10 @@ class ProductQueryPerformanceTest(TestCase):
             for product in products:
                 _ = product.category.name
 
-        self.assertEqual(len(queries), 11)
+        self.assertEqual(
+            len(queries),
+            11
+        )
 
     def test_optimized_product_queries(self):
         with CaptureQueriesContext(connection) as queries:
@@ -88,10 +119,14 @@ class ProductQueryPerformanceTest(TestCase):
             for product in products:
                 _ = product.category.name
 
-        self.assertEqual(len(queries), 1)
+        self.assertEqual(
+            len(queries),
+            1
+        )
 
 
 class ProductCacheTest(TestCase):
+
 
     def setUp(self):
         cache.clear()
@@ -100,7 +135,10 @@ class ProductCacheTest(TestCase):
         cache.clear()
 
     def test_product_cache_can_store_data(self):
-        products = ["Keyboard", "Monitor"]
+        products = [
+            "Keyboard",
+            "Monitor"
+        ]
 
         cache.set(
             "inventory_products",
@@ -124,20 +162,35 @@ class ProductCacheTest(TestCase):
             timeout=300
         )
 
-        cache.delete("inventory_products")
+        cache.delete(
+            "inventory_products"
+        )
 
         cached_products = cache.get(
             "inventory_products"
         )
 
-        self.assertIsNone(cached_products)
+        self.assertIsNone(
+            cached_products
+        )
+
 
 class ProductCacheSignalTest(TestCase):
+
 
     CACHE_KEY = "inventory_products"
 
     def setUp(self):
         cache.clear()
+
+        self.user = User.objects.create_user(
+            username="signaluser",
+            password="Password123!"
+        )
+
+        self.category = Category.objects.create(
+            name="Electronics"
+        )
 
     def tearDown(self):
         cache.clear()
@@ -153,7 +206,10 @@ class ProductCacheSignalTest(TestCase):
         self.populate_cache()
 
         Product.objects.create(
+            owner=self.user,
+            category=self.category,
             name="Laptop",
+            description="Test laptop",
             price="1500.00",
             stock=5
         )
@@ -164,7 +220,10 @@ class ProductCacheSignalTest(TestCase):
 
     def test_product_update_invalidates_cache(self):
         product = Product.objects.create(
+            owner=self.user,
+            category=self.category,
             name="Laptop",
+            description="Test laptop",
             price="1500.00",
             stock=5
         )
@@ -180,7 +239,10 @@ class ProductCacheSignalTest(TestCase):
 
     def test_product_delete_invalidates_cache(self):
         product = Product.objects.create(
+            owner=self.user,
+            category=self.category,
             name="Laptop",
+            description="Test laptop",
             price="1500.00",
             stock=5
         )

@@ -37,7 +37,9 @@ ALLOWED_HOSTS = [
 INSTALLED_APPS = [
     "products.apps.ProductsConfig",  
     "accounts",
-    'cart',
+    "cart",
+    "orders",
+    "payments",
 
     'rest_framework',
     'rest_framework_simplejwt',
