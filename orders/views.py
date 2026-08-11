@@ -2,7 +2,7 @@ from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from drf_spectacular.utils import extend_schema
 from .models import Order
 from .serializers import OrderSerializer
 from .services import checkout
@@ -10,6 +10,11 @@ from .services import checkout
 
 class CheckoutView(APIView):
     permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        request=None,
+        responses=OrderSerializer,
+    )
 
     def post(self, request):
         try:
@@ -34,6 +39,9 @@ class OrderListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Order.objects.none()
+
         return (
             Order.objects
             .filter(user=self.request.user)
@@ -47,6 +55,9 @@ class OrderDetailView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Order.objects.none()
+
         return (
             Order.objects
             .filter(user=self.request.user)

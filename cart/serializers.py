@@ -1,4 +1,5 @@
 from rest_framework import serializers
+
 from .models import Cart, CartItem
 
 
@@ -8,7 +9,11 @@ class CartItemSerializer(serializers.ModelSerializer):
         read_only=True
     )
 
-    subtotal = serializers.ReadOnlyField()
+    subtotal = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        read_only=True
+    )
 
     class Meta:
         model = CartItem
@@ -29,7 +34,11 @@ class CartSerializer(serializers.ModelSerializer):
         read_only=True
     )
 
-    total = serializers.SerializerMethodField()
+    total = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        read_only=True
+    )
 
     class Meta:
         model = Cart
@@ -41,5 +50,12 @@ class CartSerializer(serializers.ModelSerializer):
             "created_at",
         ]
 
-    def get_total(self, obj):
-        return sum(item.subtotal for item in obj.items.all())
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        data["total"] = sum(
+            item.subtotal
+            for item in instance.items.all()
+        )
+
+        return data
