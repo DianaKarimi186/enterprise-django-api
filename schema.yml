@@ -1,8 +1,9 @@
 openapi: 3.0.3
 info:
-  title: Enterprise Django API
+  title: Enterprise Inventory API
   version: 1.0.0
-  description: REST API for managing products in an e-commerce application.
+  description: REST API for managing inventory products, authentication, ownership,
+    and background processing.
 paths:
   /api/accounts/login/:
     post:
@@ -425,7 +426,6 @@ paths:
       - products
       security:
       - jwtAuth: []
-      - {}
       responses:
         '200':
           content:
@@ -509,151 +509,61 @@ paths:
       responses:
         '204':
           description: No response body
-  /api/schema/:
-    get:
-      operationId: schema_retrieve
-      description: |-
-        OpenApi3 schema for this API. Format can be selected via content negotiation.
-
-        - YAML: application/vnd.oai.openapi
-        - JSON: application/vnd.oai.openapi+json
+  /api/products/{id}/process/:
+    post:
+      operationId: products_process_create
+      description: Queues a Celery background task for the specified product.
+      summary: Start background product processing
       parameters:
-      - in: query
-        name: format
+      - in: path
+        name: id
         schema:
-          type: string
-          enum:
-          - json
-          - yaml
-      - in: query
-        name: lang
-        schema:
-          type: string
-          enum:
-          - af
-          - ar
-          - ar-dz
-          - ast
-          - az
-          - be
-          - bg
-          - bn
-          - br
-          - bs
-          - ca
-          - ckb
-          - cs
-          - cy
-          - da
-          - de
-          - dsb
-          - el
-          - en
-          - en-au
-          - en-gb
-          - eo
-          - es
-          - es-ar
-          - es-co
-          - es-mx
-          - es-ni
-          - es-ve
-          - et
-          - eu
-          - fa
-          - fi
-          - fr
-          - fy
-          - ga
-          - gd
-          - gl
-          - he
-          - hi
-          - hr
-          - hsb
-          - ht
-          - hu
-          - hy
-          - ia
-          - id
-          - ig
-          - io
-          - is
-          - it
-          - ja
-          - ka
-          - kab
-          - kk
-          - km
-          - kn
-          - ko
-          - ky
-          - lb
-          - lt
-          - lv
-          - mk
-          - ml
-          - mn
-          - mr
-          - ms
-          - my
-          - nb
-          - ne
-          - nl
-          - nn
-          - os
-          - pa
-          - pl
-          - pt
-          - pt-br
-          - ro
-          - ru
-          - sk
-          - sl
-          - sq
-          - sr
-          - sr-latn
-          - sv
-          - sw
-          - ta
-          - te
-          - tg
-          - th
-          - tk
-          - tr
-          - tt
-          - udm
-          - ug
-          - uk
-          - ur
-          - uz
-          - vi
-          - zh-hans
-          - zh-hant
+          type: integer
+        required: true
       tags:
-      - schema
+      - products
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Product'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Product'
+        required: true
       security:
       - jwtAuth: []
-      - {}
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductProcessResponse'
+          description: ''
+  /api/products/tasks/{task_id}/:
+    get:
+      operationId: products_tasks_retrieve
+      description: Returns the current Celery task status and result.
+      summary: Check background task status
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - products
+      security:
+      - jwtAuth: []
       responses:
         '200':
           content:
-            application/vnd.oai.openapi:
-              schema:
-                type: object
-                additionalProperties: {}
-            application/yaml:
-              schema:
-                type: object
-                additionalProperties: {}
-            application/vnd.oai.openapi+json:
-              schema:
-                type: object
-                additionalProperties: {}
             application/json:
               schema:
-                type: object
-                additionalProperties: {}
+                $ref: '#/components/schemas/TaskStatusResponse'
           description: ''
   /api/token/:
     post:
@@ -1103,6 +1013,22 @@ components:
       - owner
       - price
       - stock
+    ProductProcessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        task_id:
+          type: string
+        product_id:
+          type: integer
+        product_name:
+          type: string
+      required:
+      - message
+      - product_id
+      - product_name
+      - task_id
     ProviderEnum:
       enum:
       - STRIPE
@@ -1138,6 +1064,19 @@ components:
       - id
       - password
       - username
+    TaskStatusResponse:
+      type: object
+      properties:
+        task_id:
+          type: string
+        status:
+          type: string
+        result:
+          type: string
+          nullable: true
+      required:
+      - status
+      - task_id
     TokenObtainPair:
       type: object
       properties:

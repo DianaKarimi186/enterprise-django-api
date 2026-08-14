@@ -7,7 +7,7 @@ from django.views import View
 
 from celery.result import AsyncResult
 
-from rest_framework import filters, generics, status
+from rest_framework import filters, generics, status, serializers
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.response import Response
 from rest_framework.parsers import (
@@ -17,6 +17,8 @@ from rest_framework.parsers import (
 )
 
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+
+from drf_spectacular.utils import extend_schema,  inline_serializer
 
 from django_filters.rest_framework import DjangoFilterBackend
 
@@ -90,9 +92,26 @@ class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     ]
 
     permission_classes = [ IsAuthenticated, IsOwnerOrReadOnly,]
-    
+
+@extend_schema(
+    summary="Start background product processing",
+    description="Queues a Celery background task for the specified product.",
+    responses={
+        202: inline_serializer(
+            name="ProductProcessResponse",
+            fields={
+                "message": serializers.CharField(),
+                "task_id": serializers.CharField(),
+                "product_id": serializers.IntegerField(),
+                "product_name": serializers.CharField(),
+            },
+        )
+    },
+)
 class ProductProcessView(generics.GenericAPIView):
     queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+
     permission_classes = [
         IsAuthenticatedOrReadOnly,
         IsOwnerOrReadOnly,
@@ -112,7 +131,24 @@ class ProductProcessView(generics.GenericAPIView):
             },
             status=status.HTTP_202_ACCEPTED,
         )
-
+    
+@extend_schema(
+    summary="Check background task status",
+    description="Returns the current Celery task status and result.",
+    responses={
+        200: inline_serializer(
+            name="TaskStatusResponse",
+            fields={
+                "task_id": serializers.CharField(),
+                "status": serializers.CharField(),
+                "result": serializers.CharField(
+                    allow_null=True,
+                    required=False,
+                ),
+            },
+        )
+    },
+)
 class TaskStatusView(generics.GenericAPIView):
     permission_classes = [
         IsAuthenticated,
@@ -185,6 +221,8 @@ class DashboardView(View):
             }
         )
 
+
+@extend_schema(exclude=True)
 class HTMXCreateProductView(generics.GenericAPIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
@@ -275,6 +313,7 @@ class HTMXCreateProductView(generics.GenericAPIView):
             }
         )
 
+@extend_schema(exclude=True)
 class HTMXEditProductView(generics.GenericAPIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
@@ -298,7 +337,7 @@ class HTMXEditProductView(generics.GenericAPIView):
             {"product": product}
         )
 
-
+@extend_schema(exclude=True)
 class HTMXUpdateProductView(generics.GenericAPIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
@@ -370,7 +409,7 @@ class HTMXUpdateProductView(generics.GenericAPIView):
             {"product": product}
         )
 
-
+@extend_schema(exclude=True)
 class DeleteProductView(generics.GenericAPIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
