@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django.urls import path, include
 
+from accounts.views import RegisterPageView, LoginPageView
+
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -16,6 +18,9 @@ urlpatterns = [
     path("api/cart/", include("cart.urls")),
     path("api/orders/", include("orders.urls")),
     path("api/payments/", include("payments.urls")),
+
+    path("register/", RegisterPageView.as_view(), name="register-page"),
+    path("login/", LoginPageView.as_view(), name="login-page"),
 
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view()),

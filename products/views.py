@@ -1,21 +1,30 @@
+from decimal import Decimal, InvalidOperation
+
+from django.core.cache import cache
+from django.http import HttpResponse
 from django.shortcuts import render
 from django.views import View
-from django.http import HttpResponse
-from rest_framework import generics
-from .models import Product
-from .serializers import ProductSerializer
-from .tasks import simulate_heavy_background_job
-from decimal import Decimal, InvalidOperation
-from django.core.cache import cache
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters
-from .permissions import IsOwnerOrReadOnly
+
+from celery.result import AsyncResult
+
+from rest_framework import filters, generics, status
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.response import Response
 from rest_framework.parsers import (
     JSONParser,
     MultiPartParser,
     FormParser,
 )
+
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+
+from django_filters.rest_framework import DjangoFilterBackend
+
+from .models import Product, Category
+from .permissions import IsOwnerOrReadOnly
+from .serializers import ProductSerializer
+from .tasks import simulate_heavy_background_job
+
 INVENTORY_CACHE_KEY = "inventory_products"
 
 
@@ -72,8 +81,61 @@ class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     permission_classes = [ IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly,]
     
+class ProductProcessView(generics.GenericAPIView):
+    queryset = Product.objects.all()
+    permission_classes = [
+        IsAuthenticatedOrReadOnly,
+        IsOwnerOrReadOnly,
+    ]
 
+    def post(self, request, pk):
+        product = self.get_object()
 
+        task = simulate_heavy_background_job.delay(product.name)
+
+        return Response(
+            {
+                "message": "Product processing started",
+                "task_id": task.id,
+                "product_id": product.id,
+                "product_name": product.name,
+            },
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+class TaskStatusView(generics.GenericAPIView):
+    permission_classes = [
+        IsAuthenticated,
+    ]
+
+    def get(self, request, task_id):
+        task = AsyncResult(task_id)
+
+        if request.headers.get("HX-Request") == "true":
+
+            if task.successful():
+                return HttpResponse(
+                    '<span class="text-emerald-400">✓ Background processing complete</span>'
+                )
+
+            if task.failed():
+                return HttpResponse(
+                    '<span class="text-red-400">✗ Background processing failed</span>'
+                )
+
+            return HttpResponse(
+                '<span class="text-yellow-400">⏳ Background processing...</span>'
+            )
+
+        return Response(
+            {
+                "task_id": task.id,
+                "status": task.status,
+                "result": task.result if task.successful() else None,
+            },
+            status=status.HTTP_200_OK,
+        )
+    
 class DashboardView(View):
     def get(self, request):
         products = cache.get(INVENTORY_CACHE_KEY)
@@ -96,25 +158,52 @@ class DashboardView(View):
         else:
             print("CACHE HIT → Using Redis")
 
+        categories = Category.objects.all().order_by("name")
+
         return render(
             request,
             "products/dashboard.html",
-            {"products": products}
+            {
+                "products": products,
+                "categories": categories,
+            }
         )
 
+class HTMXCreateProductView(generics.GenericAPIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
-class HTMXCreateProductView(View):
     def post(self, request):
-        name = request.POST.get('name', '').strip()
-        price = request.POST.get('price')
-        stock = request.POST.get('stock')
-        description = request.POST.get('description', '')
+        
+        name = request.POST.get("name", "").strip()
+        category_id = request.POST.get("category")
+        price = request.POST.get("price")
+        stock = request.POST.get("stock")
+        description = request.POST.get("description", "").strip()
 
         if not name:
             return render(
                 request,
-                'products/partials/form_errors.html',
-                {'error_message': 'Product name is required.'},
+                "products/partials/form_errors.html",
+                {"error_message": "Product name is required."},
+                status=422
+            )
+
+        if not category_id:
+            return render(
+                request,
+                "products/partials/form_errors.html",
+                {"error_message": "Please select a category."},
+                status=422
+            )
+
+        try:
+            category = Category.objects.get(pk=category_id)
+        except (Category.DoesNotExist, ValueError, TypeError):
+            return render(
+                request,
+                "products/partials/form_errors.html",
+                {"error_message": "Selected category is invalid."},
                 status=422
             )
 
@@ -127,8 +216,8 @@ class HTMXCreateProductView(View):
         except (InvalidOperation, TypeError, ValueError):
             return render(
                 request,
-                'products/partials/form_errors.html',
-                {'error_message': 'Price must be greater than zero.'},
+                "products/partials/form_errors.html",
+                {"error_message": "Price must be greater than zero."},
                 status=422
             )
 
@@ -141,8 +230,8 @@ class HTMXCreateProductView(View):
         except (TypeError, ValueError):
             return render(
                 request,
-                'products/partials/form_errors.html',
-                {'error_message': 'Stock cannot be negative.'},
+                "products/partials/form_errors.html",
+                {"error_message": "Stock cannot be negative."},
                 status=422
             )
 
@@ -152,65 +241,99 @@ class HTMXCreateProductView(View):
             stock=stock,
             description=description,
             owner=request.user,
-            category=some_category,
+            category=category,
         )
-  
 
-        simulate_heavy_background_job.delay(product.name)
+        cache.delete(INVENTORY_CACHE_KEY)
+
+        task = simulate_heavy_background_job.delay(product.name)
 
         return render(
             request,
-            'products/partials/products_row.html',
-            {'product': product}
+            "products/partials/products_row.html",
+            {
+                "product": product,
+                "task_id": task.id,
+            }
         )
 
-class DeleteProductView(View):
-    def delete(self, request, pk):
-        product = Product.objects.filter(pk=pk).first()
-
-        if product:
-            product.delete()
-
- 
-        if not Product.objects.exists():
-            return render(
-                request,
-                "products/partials/empty_table.html"
-            )
-
-        return HttpResponse("")
-    
-
-class HTMXEditProductView(View):
+class HTMXEditProductView(generics.GenericAPIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     """Returns the inline edit form for a single product."""
 
     def get(self, request, pk):
-        product = Product.objects.get(pk=pk)
+        product = Product.objects.filter(
+            pk=pk,
+            owner=request.user
+        ).first()
+
+        if not product:
+            return HttpResponse(
+                "Product not found.",
+                status=404
+            )
 
         return render(
             request,
-            'products/partials/product_edit_row.html',
-            {'product': product}
+            "products/partials/product_edit_row.html",
+            {"product": product}
         )
 
-class HTMXUpdateProductView(View):
+
+class HTMXUpdateProductView(generics.GenericAPIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     """Updates a product and returns the refreshed table row."""
 
     def put(self, request, pk):
-        from django.http import QueryDict
+        product = Product.objects.filter(
+            pk=pk,
+            owner=request.user
+        ).first()
 
-        product = Product.objects.get(pk=pk)
+        if not product:
+            return HttpResponse(
+                "Product not found.",
+                status=404
+            )
+
+        from django.http import QueryDict
 
         data = QueryDict(request.body)
 
-        name = data.get('name')
-        price = data.get('price')
-        stock = data.get('stock')
+        name = data.get("name", "").strip()
+        price = data.get("price")
+        stock = data.get("stock")
 
-        if not name or price in (None, '') or stock in (None, ''):
+        if not name or price in (None, "") or stock in (None, ""):
             return HttpResponse(
                 "Missing required fields.",
                 status=400
+            )
+
+        try:
+            price = Decimal(price)
+
+            if price <= 0:
+                raise ValueError
+
+        except (InvalidOperation, TypeError, ValueError):
+            return HttpResponse(
+                "Price must be greater than zero.",
+                status=422
+            )
+
+        try:
+            stock = int(stock)
+
+            if stock < 0:
+                raise ValueError
+
+        except (TypeError, ValueError):
+            return HttpResponse(
+                "Stock cannot be negative.",
+                status=422
             )
 
         product.name = name
@@ -218,10 +341,38 @@ class HTMXUpdateProductView(View):
         product.stock = stock
         product.save()
 
-           
+        cache.delete(INVENTORY_CACHE_KEY)
 
         return render(
             request,
-            'products/partials/products_row.html',
-            {'product': product}
+            "products/partials/products_row.html",
+            {"product": product}
         )
+
+
+class DeleteProductView(generics.GenericAPIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    def delete(self, request, pk):
+        product = Product.objects.filter(
+            pk=pk,
+            owner=request.user
+        ).first()
+
+        if not product:
+            return HttpResponse(
+                "Product not found.",
+                status=404
+            )
+
+        product.delete()
+
+        cache.delete(INVENTORY_CACHE_KEY)
+
+        if not Product.objects.exists():
+            return render(
+                request,
+                "products/partials/empty_table.html"
+            )
+
+        return HttpResponse("")

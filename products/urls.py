@@ -7,6 +7,8 @@ from .views import (
     HTMXEditProductView,
     HTMXUpdateProductView,
     DeleteProductView,
+    ProductProcessView,
+    TaskStatusView,
 )
 
 urlpatterns = [
@@ -20,4 +22,6 @@ urlpatterns = [
     # Pure JSON REST API Core Ports
     path('', ProductListCreateView.as_view(), name='product-list-create'),
     path('<int:pk>/', ProductDetailView.as_view(), name='product-detail'),
+    path('<int:pk>/process/', ProductProcessView.as_view(),name='product-process'),
+    path('tasks/<str:task_id>/',TaskStatusView.as_view(),name='task-status',),
 ]

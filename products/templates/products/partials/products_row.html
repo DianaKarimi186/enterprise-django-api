@@ -9,6 +9,19 @@
 
     <td class="py-4 font-semibold text-white">
         {{ product.name }}
+
+        {% if task_id %}
+            <div
+                id="task-status-{{ product.id }}"
+                class="mt-1 text-xs text-yellow-400"
+                hx-get="/api/products/tasks/{{ task_id }}/"
+                hx-trigger="load, every 2s"
+                hx-target="this"
+                hx-swap="innerHTML">
+
+                ⏳ Background processing...
+            </div>
+        {% endif %}
     </td>
 
     <td class="py-4 text-emerald-400">
@@ -20,28 +33,30 @@
             {{ product.stock }} units
         </span>
     </td>
+
     <td class="py-4 flex gap-2">
 
-    <button
-        hx-get="/api/products/dashboard/edit/{{ product.id }}/"
-        hx-target="#product-{{ product.id }}"
-        hx-swap="outerHTML"
-        class="bg-blue-900/50 text-blue-400 hover:bg-blue-900 px-3 py-1 rounded text-xs transition font-medium">
+        <button
+            hx-get="/api/products/dashboard/edit/{{ product.id }}/"
+            hx-target="#product-{{ product.id }}"
+            hx-swap="outerHTML"
+            class="bg-blue-900/50 text-blue-400 hover:bg-blue-900 px-3 py-1 rounded text-xs transition font-medium">
 
-        Edit
+            Edit
 
-    </button>
+        </button>
 
-    <button
-        hx-delete="/api/products/dashboard/delete/{{ product.id }}/"
-        hx-target="#product-{{ product.id }}"
-        hx-swap="outerHTML"
-        hx-confirm="Are you sure you want to delete this item?"
-        class="bg-red-900/50 text-red-400 hover:bg-red-900 px-3 py-1 rounded text-xs transition font-medium">
+        <button
+            hx-delete="/api/products/dashboard/delete/{{ product.id }}/"
+            hx-target="#product-{{ product.id }}"
+            hx-swap="outerHTML"
+            hx-confirm="Are you sure you want to delete this item?"
+            class="bg-red-900/50 text-red-400 hover:bg-red-900 px-3 py-1 rounded text-xs transition font-medium">
 
-        Delete
+            Delete
 
-    </button>
+        </button>
 
+    </td>
 
 </tr>

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Create Account | Enterprise Inventory</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center p-6">
+
+    <div class="w-full max-w-md">
+
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-8 shadow-2xl">
+
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-emerald-400">
+                    Enterprise Inventory
+                </h1>
+
+                <p class="text-gray-400 mt-2">
+                    Create your account
+                </p>
+            </div>
+
+            <div id="message" class="mb-4"></div>
+
+            <form id="register-form" class="space-y-5">
+
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">
+                        Username
+                    </label>
+
+                    <input
+                        id="username"
+                        type="text"
+                        required
+                        autocomplete="username"
+                        class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-emerald-500"
+                        placeholder="Enter username"
+                    >
+                </div>
+
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">
+                        Email
+                    </label>
+
+                    <input
+                        id="email"
+                        type="email"
+                        required
+                        autocomplete="email"
+                        class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-emerald-500"
+                        placeholder="you@example.com"
+                    >
+                </div>
+
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">
+                        Password
+                    </label>
+
+                    <input
+                        id="password"
+                        type="password"
+                        required
+                        autocomplete="new-password"
+                        class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-emerald-500"
+                        placeholder="Create a password"
+                    >
+                </div>
+
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">
+                        Confirm Password
+                    </label>
+
+                    <input
+                        id="confirm-password"
+                        type="password"
+                        required
+                        autocomplete="new-password"
+                        class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-emerald-500"
+                        placeholder="Confirm your password"
+                    >
+                </div>
+
+                <button
+                    type="submit"
+                    class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-lg transition"
+                >
+                    Create Account
+                </button>
+
+            </form>
+
+            <p class="text-center text-gray-400 text-sm mt-6">
+                Already have an account?
+                <a
+                    href="/login/"
+                    class="text-emerald-400 hover:text-emerald-300"
+                >
+                    Sign in
+                </a>
+            </p>
+
+        </div>
+
+    </div>
+
+    <script>
+
+        const form = document.getElementById("register-form");
+        const message = document.getElementById("message");
+        function getCookie(name) {
+            const cookies = document.cookie.split(";");
+
+            for (let cookie of cookies) {
+                cookie = cookie.trim();
+
+                if (cookie.startsWith(name + "=")) {
+                    return decodeURIComponent(
+                        cookie.substring(name.length + 1)
+                    );
+                }
+            }
+
+            return null;
+        }
+
+        form.addEventListener("submit", async function(event) {
+
+            event.preventDefault();
+
+            const username = document.getElementById("username").value.trim();
+            const email = document.getElementById("email").value.trim();
+            const password = document.getElementById("password").value;
+            const confirmPassword = document.getElementById("confirm-password").value;
+
+            if (password !== confirmPassword) {
+
+                message.innerHTML = `
+                    <div class="bg-red-900/50 border border-red-700 text-red-300 rounded-lg p-3 text-sm">
+                        Passwords do not match.
+                    </div>
+                `;
+
+                return;
+            }
+
+            try {
+
+                const response = await fetch("/api/accounts/register/", {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCookie("csrftoken")
+                    },
+
+                    body: JSON.stringify({
+                        username: username,
+                        email: email,
+                        password: password
+                    })
+
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+
+                    message.innerHTML = `
+                        <div class="bg-emerald-900/50 border border-emerald-700 text-emerald-300 rounded-lg p-3 text-sm">
+                            Account created successfully. Redirecting to login...
+                        </div>
+                    `;
+
+                    setTimeout(function() {
+                        window.location.href = "/login/";
+                    }, 1200);
+
+                } else {
+
+                    let errorText = "Unable to create account.";
+
+                    if (data.username) {
+                        errorText = data.username.join(" ");
+                    } else if (data.email) {
+                        errorText = data.email.join(" ");
+                    } else if (data.password) {
+                        errorText = data.password.join(" ");
+                    } else if (data.detail) {
+                        errorText = data.detail;
+                    }
+
+                    message.innerHTML = `
+                        <div class="bg-red-900/50 border border-red-700 text-red-300 rounded-lg p-3 text-sm">
+                            ${errorText}
+                        </div>
+                    `;
+                }
+
+            } catch (error) {
+
+                message.innerHTML = `
+                    <div class="bg-red-900/50 border border-red-700 text-red-300 rounded-lg p-3 text-sm">
+                        Unable to connect to the server.
+                    </div>
+                `;
+
+            }
+
+        });
+
+    </script>
+
+</body>
+</html>

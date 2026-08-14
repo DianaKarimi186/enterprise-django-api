@@ -13,6 +13,18 @@ services:
       - db
       - redis
 
+  celery:
+    build: .
+    container_name: enterprise_celery
+    command: celery -A ecommerce_backend.celery worker --loglevel=info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+
   db:
     image: postgres:18
     container_name: enterprise_postgres

@@ -50,25 +50,88 @@
                     document.getElementById('form-error-container').innerHTML =
                     event.detail.xhr.responseText;
                 "
-                class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                class="grid grid-cols-1 md:grid-cols-4 gap-4">
 
                 {% csrf_token %}
-                
+
+                <!-- Category -->
                 <div>
-                    <label class="block text-xs uppercase font-medium text-gray-400 mb-1">Item Name</label>
-                    <input type="text" name="name" required class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
+                    <label class="block text-xs uppercase font-medium text-gray-400 mb-1">
+                        Category
+                    </label>
+                    <select
+                        name="category"
+                        required
+                        class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
+                        <option value="">Select category</option>
+
+                        {% for category in categories %}
+                            <option value="{{ category.id }}">
+                                {{ category.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
                 </div>
+
+                <!-- Product Name -->
                 <div>
-                    <label class="block text-xs uppercase font-medium text-gray-400 mb-1">Price (USD)</label>
-                    <input type="number" step="0.01" name="price" required class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
+                    <label class="block text-xs uppercase font-medium text-gray-400 mb-1">
+                        Item Name
+                    </label>
+                    <input
+                        type="text"
+                        name="name"
+                        required
+                        placeholder="e.g. Dell Latitude 5420"
+                        class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
                 </div>
+
+                <!-- Price -->
                 <div>
-                    <label class="block text-xs uppercase font-medium text-gray-400 mb-1">Stock Units</label>
-                    <input type="number" name="stock" required class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
+                    <label class="block text-xs uppercase font-medium text-gray-400 mb-1">
+                        Price (USD)
+                    </label>
+                    <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        name="price"
+                        required
+                        placeholder="0.00"
+                        class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
                 </div>
-                <div class="md:col-span-3 text-right">
-                    <button type="submit"
-                            class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-6 py-2 rounded text-sm transition">
+
+                <!-- Stock -->
+                <div>
+                    <label class="block text-xs uppercase font-medium text-gray-400 mb-1">
+                        Stock Units
+                    </label>
+                    <input
+                        type="number"
+                        min="0"
+                        name="stock"
+                        required
+                        placeholder="0"
+                        class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
+                </div>
+
+                <!-- Description -->
+                <div class="md:col-span-3">
+                    <label class="block text-xs uppercase font-medium text-gray-400 mb-1">
+                        Description
+                    </label>
+                    <textarea
+                        name="description"
+                        rows="2"
+                        placeholder="Brief product description..."
+                        class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"></textarea>
+                </div>
+
+                <!-- Submit -->
+                <div class="flex items-end justify-end">
+                    <button
+                        type="submit"
+                        class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-6 py-2 rounded text-sm transition">
 
                         <span class="htmx-indicator">
                             Processing...
@@ -80,6 +143,7 @@
 
                     </button>
                 </div>
+
             </form>
         </section>
 
@@ -116,11 +180,19 @@
         </main>
     </div>
     <script>
+        document.body.addEventListener("htmx:configRequest", function(event) {
+            const accessToken = sessionStorage.getItem("access_token");
+
+            console.log("HTMX access token:", accessToken ? "FOUND" : "MISSING");
+
+            if (accessToken) {
+                event.detail.headers["Authorization"] = "Bearer " + accessToken;
+            }
+        });
         document.body.addEventListener('htmx:responseError', function (event) {
             const errorContainer = document.getElementById(
                 'form-error-container'
             );
-
             errorContainer.innerHTML = event.detail.xhr.responseText;
         });
 
