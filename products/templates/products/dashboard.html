@@ -13,24 +13,55 @@
     hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
     class="bg-gray-900 text-gray-100 min-h-screen p-8">
     <div class="max-w-4xl mx-auto">
-        <header class="mb-8 border-b border-gray-800 pb-4">
-            <style>
-                .htmx-request .submit-label {
-                    display: none;
-                }
+    <header class="mb-8 border-b border-gray-800 pb-4">
 
-                .htmx-indicator {
-                    display: none;
-                }
+        <style>
+            .htmx-request .submit-label {
+                display: none;
+            }
 
-                .htmx-request .htmx-indicator {
-                    display: inline;
-                }
-            </style>
-            <h1 class="text-3xl font-bold text-emerald-400">Enterprise Product Inventory</h1>
-            <p class="text-gray-400 text-sm">Engineered with Python, Django, and HTMX</p>
-            <div id="notification-container" class="mb-4"></div>
-        </header>
+            .htmx-indicator {
+                display: none;
+            }
+
+            .htmx-request .htmx-indicator {
+                display: inline;
+            }
+        </style>
+
+        <div class="flex items-center justify-between">
+
+            <div>
+                <h1 class="text-3xl font-bold text-emerald-400">
+                    Enterprise Product Inventory
+                </h1>
+
+                <p class="text-gray-400 text-sm">
+                    Engineered with Python, Django, and HTMX
+                </p>
+            </div>
+
+            <button
+                type="button"
+                onclick="logout()"
+                class="bg-red-900/50
+                    text-red-400
+                    hover:bg-red-900
+                    px-4
+                    py-2
+                    rounded
+                    text-sm
+                    transition">
+
+                Logout
+
+            </button>
+
+        </div>
+
+        <div id="notification-container" class="mb-4"></div>
+
+    </header>
 
         <!-- Product Registration Form -->
         <section class="bg-gray-800 rounded-xl p-6 mb-8 border border-gray-700 shadow-xl">
@@ -180,58 +211,102 @@
         </main>
     </div>
     <script>
+        const accessToken = sessionStorage.getItem("access_token");
+        if (!accessToken) {
+            window.location.href = "/login/";
+        }
         document.body.addEventListener("htmx:configRequest", function(event) {
-            const accessToken = sessionStorage.getItem("access_token");
 
-            console.log("HTMX access token:", accessToken ? "FOUND" : "MISSING");
+            const token = sessionStorage.getItem("access_token");
 
-            if (accessToken) {
-                event.detail.headers["Authorization"] = "Bearer " + accessToken;
-            }
-        });
-        document.body.addEventListener('htmx:responseError', function (event) {
-            const errorContainer = document.getElementById(
-                'form-error-container'
+            console.log(
+                "HTMX access token:",
+                token ? "FOUND" : "MISSING"
             );
-            errorContainer.innerHTML = event.detail.xhr.responseText;
-        });
 
-        document.body.addEventListener('htmx:afterRequest', function (event) {
-            const form = event.detail.elt;
-
-            if (!form.matches('form[hx-post]')) {
-                return;
+            if (token) {
+                event.detail.headers["Authorization"] =
+                    "Bearer " + token;
             }
 
-            if (event.detail.successful) {
-                const notificationContainer = document.getElementById(
-                    'notification-container'
-                );
+        });
 
-                const emptyState = document.getElementById(
-                    'empty-table-state'
-                );
+        document.body.addEventListener(
+            "htmx:responseError",
+            function(event) {
 
-                if (emptyState) {
-                    emptyState.remove();
+                const errorContainer =
+                    document.getElementById(
+                        "form-error-container"
+                    );
+
+                errorContainer.innerHTML =
+                    event.detail.xhr.responseText;
+
+            }
+        );
+
+        document.body.addEventListener(
+            "htmx:afterRequest",
+            function(event) {
+
+                const form = event.detail.elt;
+
+                if (!form.matches("form[hx-post]")) {
+                    return;
                 }
 
-                notificationContainer.innerHTML = `
-                    <div class="bg-emerald-900/50 border border-emerald-700
-                                text-emerald-300 rounded-lg p-4 text-sm">
-                        ✓ Inventory item added successfully.
-                    </div>
-                `;
+                if (event.detail.successful) {
 
-                document.getElementById(
-                    'form-error-container'
-                ).innerHTML = '';
+                    const notificationContainer =
+                        document.getElementById(
+                            "notification-container"
+                        );
 
-                setTimeout(function () {
-                    notificationContainer.innerHTML = '';
-                }, 3000);
+                    const emptyState =
+                        document.getElementById(
+                            "empty-table-state"
+                        );
+
+                    if (emptyState) {
+                        emptyState.remove();
+                    }
+
+                    notificationContainer.innerHTML = `
+                        <div class="bg-emerald-900/50
+                                    border border-emerald-700
+                                    text-emerald-300
+                                    rounded-lg
+                                    p-4
+                                    text-sm">
+
+                            ✓ Inventory item added successfully.
+
+                        </div>
+                    `;
+
+                    document.getElementById(
+                        "form-error-container"
+                    ).innerHTML = "";
+
+                    setTimeout(function() {
+
+                        notificationContainer.innerHTML = "";
+
+                    }, 3000);
+                }
+
             }
-        });
+        );
+
+        function logout() {
+
+            sessionStorage.removeItem("access_token");
+            sessionStorage.removeItem("refresh_token");
+
+            window.location.href = "/login/";
+
+        }
     </script>
 </body>
 </html>
