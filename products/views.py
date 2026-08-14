@@ -2,7 +2,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.core.cache import cache
 from django.http import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.views import View
 
 from celery.result import AsyncResult
@@ -31,7 +31,9 @@ INVENTORY_CACHE_KEY = "inventory_products"
 
 class ProductListCreateView(generics.ListCreateAPIView):
     serializer_class = ProductSerializer
+
     permission_classes = [IsAuthenticatedOrReadOnly]
+
     parser_classes = [
         JSONParser,
         MultiPartParser,
@@ -44,27 +46,35 @@ class ProductListCreateView(generics.ListCreateAPIView):
         filters.OrderingFilter,
     ]
 
-    filterset_fields = ['category']
+    filterset_fields = ["category"]
 
     search_fields = [
-        'name',
-        'description'
+        "name",
+        "description",
     ]
 
     ordering_fields = [
-        'price',
-        'stock',
-        'created_at'
+        "price",
+        "stock",
+        "created_at",
     ]
 
     def get_queryset(self):
-        return Product.objects.select_related(
+        queryset = Product.objects.select_related(
             "category",
-            "owner"
-        ).order_by("-created_at")
+            "owner",
+        )
+
+        if self.request.user.is_authenticated:
+            return queryset.filter(
+                owner=self.request.user
+            ).order_by("-created_at")
+
+        return queryset.order_by("-created_at")
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Product.objects.select_related(
@@ -79,7 +89,7 @@ class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
         FormParser,
     ]
 
-    permission_classes = [ IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly,]
+    permission_classes = [ IsAuthenticated, IsOwnerOrReadOnly,]
     
 class ProductProcessView(generics.GenericAPIView):
     queryset = Product.objects.all()
@@ -138,7 +148,13 @@ class TaskStatusView(generics.GenericAPIView):
     
 class DashboardView(View):
     def get(self, request):
-        products = cache.get(INVENTORY_CACHE_KEY)
+
+        if not request.user.is_authenticated:
+            return redirect("/login/")
+
+        products = cache.get(
+            f"{INVENTORY_CACHE_KEY}_{request.user.id}"
+        )
 
         if products is None:
             print("CACHE MISS → Querying database")
@@ -146,11 +162,11 @@ class DashboardView(View):
             products = list(
                 Product.objects
                 .select_related("category")
-                .all()
+                .filter(owner=request.user)
             )
 
             cache.set(
-                INVENTORY_CACHE_KEY,
+                f"{INVENTORY_CACHE_KEY}_{request.user.id}",
                 products,
                 timeout=300
             )
@@ -244,7 +260,9 @@ class HTMXCreateProductView(generics.GenericAPIView):
             category=category,
         )
 
-        cache.delete(INVENTORY_CACHE_KEY)
+        cache.delete(
+            f"{INVENTORY_CACHE_KEY}_{request.user.id}"
+        )
 
         task = simulate_heavy_background_job.delay(product.name)
 
@@ -341,7 +359,10 @@ class HTMXUpdateProductView(generics.GenericAPIView):
         product.stock = stock
         product.save()
 
-        cache.delete(INVENTORY_CACHE_KEY)
+        cache.delete(
+            f"{INVENTORY_CACHE_KEY}_{request.user.id}"
+        )
+
 
         return render(
             request,
@@ -367,7 +388,10 @@ class DeleteProductView(generics.GenericAPIView):
 
         product.delete()
 
-        cache.delete(INVENTORY_CACHE_KEY)
+        cache.delete(
+            f"{INVENTORY_CACHE_KEY}_{request.user.id}"
+        )
+
 
         if not Product.objects.exists():
             return render(
