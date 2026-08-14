@@ -75,6 +75,76 @@ class ProductAPITests(APITestCase):
             response.status_code,
             status.HTTP_401_UNAUTHORIZED
         )
+    def test_anonymous_create_returns_standard_error_format(self):
+        data = {
+            "category": self.category.id,
+            "name": "Unauthorized Product",
+            "description": "Should not be created",
+            "price": 1200.00,
+            "stock": 1
+        }
+
+        response = self.client.post(
+            self.list_create_url,
+            data,
+            format="json"
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_401_UNAUTHORIZED
+        )
+
+        self.assertIn(
+            "error",
+            response.data
+        )
+
+        self.assertEqual(
+            response.data["error"]["status_code"],
+            401
+        )
+
+        self.assertIsNotNone(
+            response.data["error"]["message"]
+        )
+
+    def test_invalid_product_data_returns_standard_error_format(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.post(
+            self.list_create_url,
+            {
+                "name": "",
+                "price": -10,
+                "stock": -1,
+            },
+            format="json"
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST
+        )
+
+        self.assertIn(
+            "error",
+            response.data
+        )
+
+        self.assertEqual(
+            response.data["error"]["status_code"],
+            400
+        )
+
+        self.assertEqual(
+            response.data["error"]["message"],
+            "Validation failed."
+        )
+
+        self.assertIsNotNone(
+            response.data["error"]["details"]
+        )
 
 class ProductQueryPerformanceTest(TestCase):
 
