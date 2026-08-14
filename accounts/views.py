@@ -2,11 +2,17 @@ from django.views.generic import TemplateView
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 
-from rest_framework import generics
+from rest_framework import generics, serializers
+from drf_spectacular.utils import extend_schema
 
 from .serializers import RegisterSerializer
 
-
+@extend_schema(
+    tags=["Authentication"],
+    summary="Register a new user",
+    description="Creates a new user account.",
+    responses={201: RegisterSerializer},
+)
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
 

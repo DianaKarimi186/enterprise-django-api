@@ -30,7 +30,14 @@ from .tasks import simulate_heavy_background_job
 INVENTORY_CACHE_KEY = "inventory_products"
 
 
-
+@extend_schema(
+    tags=["Products"],
+    summary="List or create products",
+    description=(
+        "Returns products belonging to the authenticated user. "
+        "Anonymous users can read the product list but cannot create products."
+    ),
+)
 class ProductListCreateView(generics.ListCreateAPIView):
     serializer_class = ProductSerializer
 
@@ -77,7 +84,14 @@ class ProductListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
 
-
+@extend_schema(
+    tags=["Products"],
+    summary="Retrieve, update, or delete a product",
+    description=(
+        "Retrieve a product by ID. "
+        "Only the product owner can update or delete the product."
+    ),
+)
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Product.objects.select_related(
         "category",

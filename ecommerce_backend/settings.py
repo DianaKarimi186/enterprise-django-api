@@ -177,11 +177,41 @@ REST_FRAMEWORK = {
 SPECTACULAR_SETTINGS = {
     "TITLE": "Enterprise Inventory API",
     "DESCRIPTION": (
-        "REST API for managing inventory products, "
-        "authentication, ownership, and background processing."
+        "Production-oriented REST API for managing inventory products, "
+        "JWT authentication, product ownership, filtering, searching, "
+        "ordering, caching, and asynchronous background processing."
     ),
     "VERSION": "1.0.0",
+
     "SERVE_INCLUDE_SCHEMA": False,
+
+    "SCHEMA_PATH_PREFIX": r"/api/",
+
+    "TAGS": [
+        {
+            "name": "Authentication",
+            "description": "User registration and JWT authentication endpoints.",
+        },
+        {
+            "name": "Products",
+            "description": "Product inventory management endpoints.",
+        },
+        {
+            "name": "Background Processing",
+            "description": "Asynchronous Celery task processing and status endpoints.",
+        },
+    ],
+    "SECURITY": [
+        {
+            "BearerAuth": [],
+        }
+    ],
+    "SERVERS": [
+        {
+            "url": "/",
+            "description": "Current server",
+        },
+    ],
 }
 
 SIMPLE_JWT = {

@@ -2,8 +2,9 @@ openapi: 3.0.3
 info:
   title: Enterprise Inventory API
   version: 1.0.0
-  description: REST API for managing inventory products, authentication, ownership,
-    and background processing.
+  description: Production-oriented REST API for managing inventory products, JWT authentication,
+    product ownership, filtering, searching, ordering, caching, and asynchronous background
+    processing.
 paths:
   /api/accounts/login/:
     post:
@@ -25,6 +26,8 @@ paths:
             schema:
               $ref: '#/components/schemas/TokenObtainPair'
         required: true
+      security:
+      - BearerAuth: []
       responses:
         '200':
           content:
@@ -52,6 +55,8 @@ paths:
             schema:
               $ref: '#/components/schemas/TokenRefresh'
         required: true
+      security:
+      - BearerAuth: []
       responses:
         '200':
           content:
@@ -62,8 +67,10 @@ paths:
   /api/accounts/register/:
     post:
       operationId: accounts_register_create
+      description: Creates a new user account.
+      summary: Register a new user
       tags:
-      - accounts
+      - Authentication
       requestBody:
         content:
           application/json:
@@ -78,6 +85,7 @@ paths:
         required: true
       security:
       - jwtAuth: []
+      - BearerAuth: []
       - {}
       responses:
         '201':
@@ -93,6 +101,7 @@ paths:
       - cart
       security:
       - jwtAuth: []
+      - BearerAuth: []
       responses:
         '200':
           content:
@@ -113,6 +122,7 @@ paths:
       - cart
       security:
       - jwtAuth: []
+      - BearerAuth: []
       responses:
         '200':
           content:
@@ -133,6 +143,7 @@ paths:
       - cart
       security:
       - jwtAuth: []
+      - BearerAuth: []
       responses:
         '204':
           description: No response body
@@ -160,6 +171,7 @@ paths:
               $ref: '#/components/schemas/PatchedCartQuantity'
       security:
       - jwtAuth: []
+      - BearerAuth: []
       responses:
         '200':
           content:
@@ -193,6 +205,7 @@ paths:
       - orders
       security:
       - jwtAuth: []
+      - BearerAuth: []
       responses:
         '200':
           content:
@@ -213,6 +226,7 @@ paths:
       - orders
       security:
       - jwtAuth: []
+      - BearerAuth: []
       responses:
         '200':
           content:
@@ -244,6 +258,7 @@ paths:
               $ref: '#/components/schemas/PatchedOrder'
       security:
       - jwtAuth: []
+      - BearerAuth: []
       responses:
         '200':
           content:
@@ -258,6 +273,7 @@ paths:
       - orders
       security:
       - jwtAuth: []
+      - BearerAuth: []
       responses:
         '200':
           content:
@@ -291,6 +307,7 @@ paths:
       - payments
       security:
       - jwtAuth: []
+      - BearerAuth: []
       responses:
         '200':
           content:
@@ -311,6 +328,7 @@ paths:
       - payments
       security:
       - jwtAuth: []
+      - BearerAuth: []
       responses:
         '200':
           content:
@@ -343,6 +361,7 @@ paths:
         required: true
       security:
       - jwtAuth: []
+      - BearerAuth: []
       responses:
         '200':
           content:
@@ -353,6 +372,9 @@ paths:
   /api/products/:
     get:
       operationId: products_list
+      description: Returns products belonging to the authenticated user. Anonymous
+        users can read the product list but cannot create products.
+      summary: List or create products
       parameters:
       - in: query
         name: category
@@ -377,9 +399,10 @@ paths:
         schema:
           type: string
       tags:
-      - products
+      - Products
       security:
       - jwtAuth: []
+      - BearerAuth: []
       - {}
       responses:
         '200':
@@ -390,8 +413,11 @@ paths:
           description: ''
     post:
       operationId: products_create
+      description: Returns products belonging to the authenticated user. Anonymous
+        users can read the product list but cannot create products.
+      summary: List or create products
       tags:
-      - products
+      - Products
       requestBody:
         content:
           application/json:
@@ -406,6 +432,7 @@ paths:
         required: true
       security:
       - jwtAuth: []
+      - BearerAuth: []
       responses:
         '201':
           content:
@@ -416,6 +443,9 @@ paths:
   /api/products/{id}/:
     get:
       operationId: products_retrieve
+      description: Retrieve a product by ID. Only the product owner can update or
+        delete the product.
+      summary: Retrieve, update, or delete a product
       parameters:
       - in: path
         name: id
@@ -423,9 +453,10 @@ paths:
           type: integer
         required: true
       tags:
-      - products
+      - Products
       security:
       - jwtAuth: []
+      - BearerAuth: []
       responses:
         '200':
           content:
@@ -435,6 +466,9 @@ paths:
           description: ''
     put:
       operationId: products_update
+      description: Retrieve a product by ID. Only the product owner can update or
+        delete the product.
+      summary: Retrieve, update, or delete a product
       parameters:
       - in: path
         name: id
@@ -442,7 +476,7 @@ paths:
           type: integer
         required: true
       tags:
-      - products
+      - Products
       requestBody:
         content:
           application/json:
@@ -457,6 +491,7 @@ paths:
         required: true
       security:
       - jwtAuth: []
+      - BearerAuth: []
       responses:
         '200':
           content:
@@ -466,6 +501,9 @@ paths:
           description: ''
     patch:
       operationId: products_partial_update
+      description: Retrieve a product by ID. Only the product owner can update or
+        delete the product.
+      summary: Retrieve, update, or delete a product
       parameters:
       - in: path
         name: id
@@ -473,7 +511,7 @@ paths:
           type: integer
         required: true
       tags:
-      - products
+      - Products
       requestBody:
         content:
           application/json:
@@ -487,6 +525,7 @@ paths:
               $ref: '#/components/schemas/PatchedProduct'
       security:
       - jwtAuth: []
+      - BearerAuth: []
       responses:
         '200':
           content:
@@ -496,6 +535,9 @@ paths:
           description: ''
     delete:
       operationId: products_destroy
+      description: Retrieve a product by ID. Only the product owner can update or
+        delete the product.
+      summary: Retrieve, update, or delete a product
       parameters:
       - in: path
         name: id
@@ -503,9 +545,10 @@ paths:
           type: integer
         required: true
       tags:
-      - products
+      - Products
       security:
       - jwtAuth: []
+      - BearerAuth: []
       responses:
         '204':
           description: No response body
@@ -536,6 +579,7 @@ paths:
         required: true
       security:
       - jwtAuth: []
+      - BearerAuth: []
       responses:
         '202':
           content:
@@ -558,6 +602,7 @@ paths:
       - products
       security:
       - jwtAuth: []
+      - BearerAuth: []
       responses:
         '200':
           content:
@@ -585,6 +630,8 @@ paths:
             schema:
               $ref: '#/components/schemas/TokenObtainPair'
         required: true
+      security:
+      - BearerAuth: []
       responses:
         '200':
           content:
@@ -612,6 +659,8 @@ paths:
             schema:
               $ref: '#/components/schemas/TokenRefresh'
         required: true
+      security:
+      - BearerAuth: []
       responses:
         '200':
           content:
@@ -1114,3 +1163,13 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+servers:
+- url: /
+  description: Current server
+tags:
+- name: Authentication
+  description: User registration and JWT authentication endpoints.
+- name: Products
+  description: Product inventory management endpoints.
+- name: Background Processing
+  description: Asynchronous Celery task processing and status endpoints.
