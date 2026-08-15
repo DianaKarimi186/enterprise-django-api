@@ -27,6 +27,8 @@ from .permissions import IsOwnerOrReadOnly
 from .serializers import ProductSerializer
 from .tasks import simulate_heavy_background_job
 
+from django.db.models import Q
+
 INVENTORY_CACHE_KEY = "inventory_products"
 
 
@@ -277,6 +279,78 @@ class DashboardView(View):
             }
         )
 
+@extend_schema(exclude=True)
+class HTMXInventoryView(generics.GenericAPIView):
+    """
+    Returns the authenticated user's inventory as HTML.
+
+    This endpoint is specifically designed for HTMX requests.
+    It does not replace the JSON REST API.
+    """
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        products = (
+            Product.objects
+            .select_related("category")
+            .filter(owner=request.user)
+        )
+
+        # -------------------------
+        # Search
+        # -------------------------
+        search = request.GET.get("search", "").strip()
+
+        if search:
+            products = products.filter(
+                Q(name__icontains=search)
+                | Q(description__icontains=search)
+            )
+
+        # -------------------------
+        # Category filter
+        # -------------------------
+        category = request.GET.get("category", "").strip()
+
+        if category:
+            try:
+                products = products.filter(
+                    category_id=int(category)
+                )
+            except (TypeError, ValueError):
+                pass
+
+        # -------------------------
+        # Ordering
+        # -------------------------
+        ordering = request.GET.get(
+            "ordering",
+            "-created_at"
+        )
+
+        allowed_ordering = {
+            "created_at",
+            "-created_at",
+            "price",
+            "-price",
+            "stock",
+            "-stock",
+        }
+
+        if ordering not in allowed_ordering:
+            ordering = "-created_at"
+
+        products = products.order_by(ordering)
+
+        return render(
+            request,
+            "products/partials/inventory_rows.html",
+            {
+                "products": products,
+            },
+        )
 
 @extend_schema(exclude=True)
 class HTMXCreateProductView(generics.GenericAPIView):

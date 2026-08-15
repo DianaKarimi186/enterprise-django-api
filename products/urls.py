@@ -3,6 +3,7 @@ from .views import (
     ProductListCreateView,
     ProductDetailView,
     DashboardView,
+    HTMXInventoryView,
     HTMXCreateProductView,
     HTMXEditProductView,
     HTMXUpdateProductView,
@@ -14,6 +15,7 @@ from .views import (
 urlpatterns = [
     # Visual Frontend UI Gates
     path('dashboard/', DashboardView.as_view(), name='product-dashboard'),
+    path("dashboard/inventory/", HTMXInventoryView.as_view(),name="htmx-inventory",),
     path('dashboard/create/', HTMXCreateProductView.as_view(), name='htmx-create-product'),
     path('dashboard/delete/<int:pk>/', DeleteProductView.as_view(), name='delete-product'),
     path('dashboard/edit/<int:pk>/',HTMXEditProductView.as_view(),name='htmx-edit-product'),

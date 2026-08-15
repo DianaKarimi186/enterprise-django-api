@@ -1,0 +1,9 @@
+{% for product in products %}
+
+    {% include "products/partials/products_row.html" %}
+
+{% empty %}
+
+    {% include "products/partials/empty_table.html" %}
+
+{% endfor %}

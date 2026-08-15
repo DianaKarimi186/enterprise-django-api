@@ -1,15 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>Enterprise Engineering Control Dashboard</title>
 
     <script src="https://unpkg.com/htmx.org@2.0.8"></script>
+
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
+
         .htmx-request .submit-label {
             display: none;
         }
@@ -21,57 +29,42 @@
         .htmx-request .htmx-indicator {
             display: inline;
         }
+
     </style>
+
 </head>
+
 
 <body
     hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-    class="bg-gray-900 text-gray-100 min-h-screen p-4 md:p-8"
+    class="bg-gray-900 text-gray-100 min-h-screen p-8"
 >
+
 
 <div class="max-w-6xl mx-auto">
 
-    <!-- ========================================================= -->
+
+    <!-- ===================================== -->
     <!-- HEADER -->
-    <!-- ========================================================= -->
+    <!-- ===================================== -->
 
-    <header class="mb-8 border-b border-gray-800 pb-6">
+    <header class="mb-8 border-b border-gray-800 pb-4">
 
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="flex items-center justify-between">
 
             <div>
 
-                <div class="flex items-center gap-3">
+                <h1 class="text-3xl font-bold text-emerald-400">
+                    Enterprise Product Inventory
+                </h1>
 
-                    <div class="w-10 h-10 rounded-lg bg-emerald-600/20
-                                border border-emerald-700
-                                flex items-center justify-center">
-
-                        <span class="text-emerald-400 font-bold">
-                            EI
-                        </span>
-
-                    </div>
-
-                    <div>
-
-                        <h1 class="text-2xl md:text-3xl font-bold text-emerald-400">
-                            Enterprise Product Inventory
-                        </h1>
-
-                        <p class="text-gray-400 text-sm mt-1">
-                            Inventory control and background processing dashboard
-                        </p>
-
-                    </div>
-
-                </div>
-
-                <p class="text-gray-500 text-xs mt-3">
-                    Powered by Django REST Framework, Redis, Celery, and HTMX
+                <p class="text-gray-400 text-sm mt-1">
+                    Enterprise inventory control powered by
+                    Django REST Framework, Redis, Celery, and HTMX
                 </p>
 
             </div>
+
 
             <button
                 type="button"
@@ -79,20 +72,19 @@
                 class="bg-red-900/50
                        text-red-400
                        hover:bg-red-900
-                       hover:text-red-300
-                       border border-red-900
                        px-4
                        py-2
-                       rounded-lg
+                       rounded
                        text-sm
                        transition"
             >
+
                 Logout
+
             </button>
 
         </div>
 
-        <!-- Notifications -->
 
         <div
             id="notification-container"
@@ -102,23 +94,27 @@
     </header>
 
 
-    <!-- ========================================================= -->
+
+    <!-- ===================================== -->
     <!-- INVENTORY METRICS -->
-    <!-- ========================================================= -->
+    <!-- ===================================== -->
 
     <section
-        class="grid grid-cols-1
+        class="grid
+               grid-cols-1
                sm:grid-cols-2
-               lg:grid-cols-5
+               lg:grid-cols-4
                gap-4
                mb-8"
     >
+
 
         <!-- Total Products -->
 
         <div
             class="bg-gray-800
-                   border border-gray-700
+                   border
+                   border-gray-700
                    rounded-xl
                    p-5
                    shadow-lg"
@@ -128,7 +124,12 @@
                 Total Products
             </p>
 
-            <p class="text-3xl font-bold text-emerald-400 mt-2">
+            <p
+                class="text-3xl
+                       font-bold
+                       text-emerald-400
+                       mt-2"
+            >
                 {{ total_products }}
             </p>
 
@@ -139,11 +140,13 @@
         </div>
 
 
+
         <!-- Total Stock -->
 
         <div
             class="bg-gray-800
-                   border border-gray-700
+                   border
+                   border-gray-700
                    rounded-xl
                    p-5
                    shadow-lg"
@@ -153,7 +156,12 @@
                 Total Stock
             </p>
 
-            <p class="text-3xl font-bold text-blue-400 mt-2">
+            <p
+                class="text-3xl
+                       font-bold
+                       text-blue-400
+                       mt-2"
+            >
                 {{ total_stock }}
             </p>
 
@@ -164,11 +172,13 @@
         </div>
 
 
+
         <!-- Low Stock -->
 
         <div
             class="bg-gray-800
-                   border border-gray-700
+                   border
+                   border-gray-700
                    rounded-xl
                    p-5
                    shadow-lg"
@@ -178,7 +188,12 @@
                 Low Stock
             </p>
 
-            <p class="text-3xl font-bold text-yellow-400 mt-2">
+            <p
+                class="text-3xl
+                       font-bold
+                       text-yellow-400
+                       mt-2"
+            >
                 {{ low_stock_count }}
             </p>
 
@@ -189,11 +204,13 @@
         </div>
 
 
+
         <!-- Categories -->
 
         <div
             class="bg-gray-800
-                   border border-gray-700
+                   border
+                   border-gray-700
                    rounded-xl
                    p-5
                    shadow-lg"
@@ -203,112 +220,48 @@
                 Categories
             </p>
 
-            <p class="text-3xl font-bold text-purple-400 mt-2">
+            <p
+                class="text-3xl
+                       font-bold
+                       text-purple-400
+                       mt-2"
+            >
                 {{ category_count }}
             </p>
 
             <p class="text-xs text-gray-500 mt-1">
-                Active categories
+                Active product categories
             </p>
 
         </div>
 
-
-        <!-- Inventory Value -->
-
-        <div
-            class="bg-gray-800
-                   border border-gray-700
-                   rounded-xl
-                   p-5
-                   shadow-lg"
-        >
-
-            <p class="text-xs uppercase tracking-wide text-gray-400">
-                Inventory Value
-            </p>
-
-            <p class="text-3xl font-bold text-cyan-400 mt-2">
-                ${{ total_inventory_value|floatformat:2 }}
-            </p>
-
-            <p class="text-xs text-gray-500 mt-1">
-                Total stock value
-            </p>
-
-        </div>
 
     </section>
 
 
-    <!-- ========================================================= -->
-    <!-- OUT OF STOCK ALERT -->
-    <!-- ========================================================= -->
 
-    {% if out_of_stock_count > 0 %}
-
-    <div
-        class="mb-6
-               bg-red-900/30
-               border border-red-800
-               rounded-xl
-               p-4"
-    >
-
-        <div class="flex items-center justify-between">
-
-            <div>
-
-                <p class="text-red-300 font-semibold">
-                    Inventory Alert
-                </p>
-
-                <p class="text-red-400 text-sm mt-1">
-                    {{ out_of_stock_count }}
-                    product(s) are currently out of stock.
-                </p>
-
-            </div>
-
-            <span class="text-red-400 text-2xl">
-                ⚠
-            </span>
-
-        </div>
-
-    </div>
-
-    {% endif %}
-
-
-    <!-- ========================================================= -->
+    <!-- ===================================== -->
     <!-- PRODUCT REGISTRATION -->
-    <!-- ========================================================= -->
+    <!-- ===================================== -->
 
     <section
         class="bg-gray-800
                rounded-xl
                p-6
                mb-8
-               border border-gray-700
+               border
+               border-gray-700
                shadow-xl"
     >
 
-        <div class="flex items-center justify-between mb-5">
-
-            <div>
-
-                <h2 class="text-xl font-semibold text-emerald-300">
-                    Register New Inventory Item
-                </h2>
-
-                <p class="text-xs text-gray-500 mt-1">
-                    Add a new product to your inventory.
-                </p>
-
-            </div>
-
-        </div>
+        <h2
+            class="text-xl
+                   font-semibold
+                   mb-4
+                   text-emerald-300"
+        >
+            Register New Inventory Item
+        </h2>
 
 
         <div
@@ -318,23 +271,26 @@
 
 
         <form
+
             hx-post="/api/products/dashboard/create/"
+
             hx-target="#product-table-body"
+
             hx-swap="beforeend"
 
             hx-on::after-request="
                 if(event.detail.successful) {
                     this.reset();
-                    document.getElementById('form-error-container').innerHTML = '';
+                    document.getElementById(
+                        'form-error-container'
+                    ).innerHTML = '';
                 }
             "
 
-            hx-on::response-error="
-                document.getElementById('form-error-container').innerHTML =
-                event.detail.xhr.responseText;
-            "
-
-            class="grid grid-cols-1 md:grid-cols-4 gap-4"
+            class="grid
+                   grid-cols-1
+                   md:grid-cols-4
+                   gap-4"
         >
 
             {% csrf_token %}
@@ -355,14 +311,17 @@
                     Category
                 </label>
 
+
                 <select
                     name="category"
                     required
                     class="w-full
                            bg-gray-900
-                           border border-gray-700
+                           border
+                           border-gray-700
                            rounded
-                           px-3 py-2
+                           px-3
+                           py-2
                            text-sm
                            focus:border-emerald-500
                            focus:outline-none"
@@ -372,17 +331,19 @@
                         Select category
                     </option>
 
+
                     {% for category in categories %}
 
-                    <option value="{{ category.id }}">
-                        {{ category.name }}
-                    </option>
+                        <option value="{{ category.id }}">
+                            {{ category.name }}
+                        </option>
 
                     {% endfor %}
 
                 </select>
 
             </div>
+
 
 
             <!-- Product Name -->
@@ -400,6 +361,7 @@
                     Item Name
                 </label>
 
+
                 <input
                     type="text"
                     name="name"
@@ -407,15 +369,18 @@
                     placeholder="e.g. Dell Latitude 5420"
                     class="w-full
                            bg-gray-900
-                           border border-gray-700
+                           border
+                           border-gray-700
                            rounded
-                           px-3 py-2
+                           px-3
+                           py-2
                            text-sm
                            focus:border-emerald-500
                            focus:outline-none"
                 >
 
             </div>
+
 
 
             <!-- Price -->
@@ -433,6 +398,7 @@
                     Price (USD)
                 </label>
 
+
                 <input
                     type="number"
                     step="0.01"
@@ -442,15 +408,18 @@
                     placeholder="0.00"
                     class="w-full
                            bg-gray-900
-                           border border-gray-700
+                           border
+                           border-gray-700
                            rounded
-                           px-3 py-2
+                           px-3
+                           py-2
                            text-sm
                            focus:border-emerald-500
                            focus:outline-none"
                 >
 
             </div>
+
 
 
             <!-- Stock -->
@@ -468,6 +437,7 @@
                     Stock Units
                 </label>
 
+
                 <input
                     type="number"
                     min="0"
@@ -476,15 +446,18 @@
                     placeholder="0"
                     class="w-full
                            bg-gray-900
-                           border border-gray-700
+                           border
+                           border-gray-700
                            rounded
-                           px-3 py-2
+                           px-3
+                           py-2
                            text-sm
                            focus:border-emerald-500
                            focus:outline-none"
                 >
 
             </div>
+
 
 
             <!-- Description -->
@@ -502,21 +475,25 @@
                     Description
                 </label>
 
+
                 <textarea
                     name="description"
                     rows="2"
                     placeholder="Brief product description..."
                     class="w-full
                            bg-gray-900
-                           border border-gray-700
+                           border
+                           border-gray-700
                            rounded
-                           px-3 py-2
+                           px-3
+                           py-2
                            text-sm
                            focus:border-emerald-500
                            focus:outline-none"
                 ></textarea>
 
             </div>
+
 
 
             <!-- Submit -->
@@ -548,39 +525,25 @@
 
             </div>
 
+
         </form>
 
     </section>
 
 
-    <!-- ========================================================= -->
+
+    <!-- ===================================== -->
     <!-- INVENTORY CONTROLS -->
-    <!-- ========================================================= -->
+    <!-- ===================================== -->
 
     <section
         class="bg-gray-800
                rounded-xl
                p-5
                mb-6
-               border border-gray-700"
+               border
+               border-gray-700"
     >
-
-        <div class="flex items-center justify-between mb-4">
-
-            <div>
-
-                <h2 class="text-lg font-semibold text-gray-200">
-                    Inventory Controls
-                </h2>
-
-                <p class="text-xs text-gray-500 mt-1">
-                    Search, filter, and sort inventory records.
-                </p>
-
-            </div>
-
-        </div>
-
 
         <div
             class="flex
@@ -590,7 +553,8 @@
                    md:items-end"
         >
 
-            <!-- Search -->
+
+            <!-- SEARCH -->
 
             <div class="flex-1">
 
@@ -605,19 +569,30 @@
                     Search Inventory
                 </label>
 
+
                 <input
                     type="text"
+                    id="inventory-search"
                     name="search"
                     placeholder="Search by product name or description..."
-                    hx-get="/api/products/"
+
+                    hx-get="/api/products/dashboard/inventory/"
+
                     hx-trigger="keyup changed delay:400ms"
+
                     hx-target="#product-table-body"
+
                     hx-swap="innerHTML"
+
+                    hx-include="#inventory-search, #inventory-category, #inventory-ordering"
+
                     class="w-full
                            bg-gray-900
-                           border border-gray-700
+                           border
+                           border-gray-700
                            rounded
-                           px-3 py-2
+                           px-3
+                           py-2
                            text-sm
                            focus:border-emerald-500
                            focus:outline-none"
@@ -626,7 +601,8 @@
             </div>
 
 
-            <!-- Category -->
+
+            <!-- CATEGORY -->
 
             <div class="md:w-56">
 
@@ -641,17 +617,28 @@
                     Category
                 </label>
 
+
                 <select
+                    id="inventory-category"
                     name="category"
-                    hx-get="/api/products/"
+
+                    hx-get="/api/products/dashboard/inventory/"
+
                     hx-trigger="change"
+
                     hx-target="#product-table-body"
+
                     hx-swap="innerHTML"
+
+                    hx-include="#inventory-search, #inventory-category, #inventory-ordering"
+
                     class="w-full
                            bg-gray-900
-                           border border-gray-700
+                           border
+                           border-gray-700
                            rounded
-                           px-3 py-2
+                           px-3
+                           py-2
                            text-sm
                            focus:border-emerald-500
                            focus:outline-none"
@@ -661,11 +648,12 @@
                         All categories
                     </option>
 
+
                     {% for category in categories %}
 
-                    <option value="{{ category.id }}">
-                        {{ category.name }}
-                    </option>
+                        <option value="{{ category.id }}">
+                            {{ category.name }}
+                        </option>
 
                     {% endfor %}
 
@@ -674,7 +662,8 @@
             </div>
 
 
-            <!-- Ordering -->
+
+            <!-- ORDERING -->
 
             <div class="md:w-48">
 
@@ -689,17 +678,28 @@
                     Sort By
                 </label>
 
+
                 <select
+                    id="inventory-ordering"
                     name="ordering"
-                    hx-get="/api/products/"
+
+                    hx-get="/api/products/dashboard/inventory/"
+
                     hx-trigger="change"
+
                     hx-target="#product-table-body"
+
                     hx-swap="innerHTML"
+
+                    hx-include="#inventory-search, #inventory-category, #inventory-ordering"
+
                     class="w-full
                            bg-gray-900
-                           border border-gray-700
+                           border
+                           border-gray-700
                            rounded
-                           px-3 py-2
+                           px-3
+                           py-2
                            text-sm
                            focus:border-emerald-500
                            focus:outline-none"
@@ -733,58 +733,51 @@
 
             </div>
 
+
         </div>
 
     </section>
 
 
-    <!-- ========================================================= -->
+
+    <!-- ===================================== -->
     <!-- LIVE INVENTORY TABLE -->
-    <!-- ========================================================= -->
+    <!-- ===================================== -->
 
     <main
         class="bg-gray-800
                rounded-xl
                p-6
                shadow-2xl
-               border border-gray-700"
+               border
+               border-gray-700"
     >
 
         <div
             class="flex
-                   flex-col
-                   sm:flex-row
-                   sm:items-center
-                   sm:justify-between
-                   gap-3
-                   mb-5"
+                   items-center
+                   justify-between
+                   mb-4"
         >
 
             <div>
 
-                <h2 class="text-xl font-semibold text-emerald-300">
+                <h2
+                    class="text-xl
+                           font-semibold
+                           text-emerald-300"
+                >
                     Live Database Items
                 </h2>
 
-                <p class="text-xs text-gray-500 mt-1">
+                <p class="text-gray-500 text-sm mt-1">
                     Products owned by your authenticated account.
                 </p>
 
             </div>
 
-            <span
-                class="text-xs
-                       text-gray-500
-                       bg-gray-900
-                       border border-gray-700
-                       rounded-full
-                       px-3
-                       py-1"
-            >
-                {{ total_products }} item(s)
-            </span>
-
         </div>
+
 
 
         <div class="overflow-x-auto">
@@ -827,9 +820,7 @@
 
                 <tbody
                     id="product-table-body"
-                    class="divide-y
-                           divide-gray-700
-                           text-sm"
+                    class="divide-y divide-gray-700 text-sm"
                 >
 
                     {% for product in products %}
@@ -850,21 +841,26 @@
 
     </main>
 
+
 </div>
 
 
-<!-- ============================================================= -->
+
+<!-- ===================================== -->
 <!-- JAVASCRIPT -->
-<!-- ============================================================= -->
+<!-- ===================================== -->
 
 <script>
 
-    // -------------------------------------------------------------
-    // Authentication Check
-    // -------------------------------------------------------------
+    /*
+     * -------------------------------------
+     * Authentication
+     * -------------------------------------
+     */
 
     const accessToken =
         sessionStorage.getItem("access_token");
+
 
     if (!accessToken) {
 
@@ -873,9 +869,12 @@
     }
 
 
-    // -------------------------------------------------------------
-    // Attach JWT Token to HTMX Requests
-    // -------------------------------------------------------------
+
+    /*
+     * -------------------------------------
+     * Attach JWT to HTMX requests
+     * -------------------------------------
+     */
 
     document.body.addEventListener(
         "htmx:configRequest",
@@ -884,10 +883,6 @@
             const token =
                 sessionStorage.getItem("access_token");
 
-            console.log(
-                "HTMX access token:",
-                token ? "FOUND" : "MISSING"
-            );
 
             if (token) {
 
@@ -900,9 +895,12 @@
     );
 
 
-    // -------------------------------------------------------------
-    // HTMX Response Errors
-    // -------------------------------------------------------------
+
+    /*
+     * -------------------------------------
+     * HTMX errors
+     * -------------------------------------
+     */
 
     document.body.addEventListener(
         "htmx:responseError",
@@ -912,6 +910,7 @@
                 document.getElementById(
                     "form-error-container"
                 );
+
 
             if (errorContainer) {
 
@@ -924,15 +923,19 @@
     );
 
 
-    // -------------------------------------------------------------
-    // Successful HTMX Requests
-    // -------------------------------------------------------------
+
+    /*
+     * -------------------------------------
+     * Successful product creation
+     * -------------------------------------
+     */
 
     document.body.addEventListener(
         "htmx:afterRequest",
         function(event) {
 
             const form = event.detail.elt;
+
 
             if (!form.matches("form[hx-post]")) {
 
@@ -966,7 +969,8 @@
 
                     <div
                         class="bg-emerald-900/50
-                               border border-emerald-700
+                               border
+                               border-emerald-700
                                text-emerald-300
                                rounded-lg
                                p-4
@@ -985,14 +989,11 @@
                 ).innerHTML = "";
 
 
-                setTimeout(
-                    function() {
+                setTimeout(function() {
 
-                        notificationContainer.innerHTML = "";
+                    notificationContainer.innerHTML = "";
 
-                    },
-                    3000
-                );
+                }, 3000);
 
             }
 
@@ -1000,15 +1001,23 @@
     );
 
 
-    // -------------------------------------------------------------
-    // Logout
-    // -------------------------------------------------------------
+
+    /*
+     * -------------------------------------
+     * Logout
+     * -------------------------------------
+     */
 
     function logout() {
 
-        sessionStorage.removeItem("access_token");
+        sessionStorage.removeItem(
+            "access_token"
+        );
 
-        sessionStorage.removeItem("refresh_token");
+        sessionStorage.removeItem(
+            "refresh_token"
+        );
+
 
         window.location.href = "/login/";
 
@@ -1016,5 +1025,7 @@
 
 </script>
 
+
 </body>
+
 </html>

@@ -9,6 +9,7 @@ from .views import (
     RegisterView,
     RegisterPageView,
     LoginPageView,
+    BrowserLoginView
 )
 
 
@@ -19,6 +20,7 @@ urlpatterns = [
     path("refresh/", TokenRefreshView.as_view(), name="refresh"),
 
     # Browser pages
+    path("browser-login/",BrowserLoginView.as_view(),name="browser-login",),
     path("register-page/", RegisterPageView.as_view(), name="register-page"),
     path("login-page/", LoginPageView.as_view(), name="login-page"),
 ]
