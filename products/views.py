@@ -197,14 +197,18 @@ class TaskStatusView(generics.GenericAPIView):
         )
     
 class DashboardView(View):
+    permission_classes = [
+        IsAuthenticated,
+    ]
+
     def get(self, request):
 
         if not request.user.is_authenticated:
             return redirect("/login/")
 
-        products = cache.get(
-            f"{INVENTORY_CACHE_KEY}_{request.user.id}"
-        )
+        cache_key = f"{INVENTORY_CACHE_KEY}_{request.user.id}"
+
+        products = cache.get(cache_key)
 
         if products is None:
             print("CACHE MISS → Querying database")
@@ -213,10 +217,11 @@ class DashboardView(View):
                 Product.objects
                 .select_related("category")
                 .filter(owner=request.user)
+                .order_by("-created_at")
             )
 
             cache.set(
-                f"{INVENTORY_CACHE_KEY}_{request.user.id}",
+                cache_key,
                 products,
                 timeout=300
             )
@@ -226,12 +231,49 @@ class DashboardView(View):
 
         categories = Category.objects.all().order_by("name")
 
+        total_products = len(products)
+
+        total_stock = sum(
+            product.stock
+            for product in products
+        )
+
+        low_stock_count = sum(
+            1
+            for product in products
+            if product.stock <= 5
+        )
+
+        out_of_stock_count = sum(
+            1
+            for product in products
+            if product.stock == 0
+        )
+
+        category_count = len(
+            {
+                product.category_id
+                for product in products
+            }
+        )
+
+        total_inventory_value = sum(
+            product.price * product.stock
+            for product in products
+        )
+
         return render(
             request,
             "products/dashboard.html",
             {
                 "products": products,
                 "categories": categories,
+                "total_products": total_products,
+                "total_stock": total_stock,
+                "low_stock_count": low_stock_count,
+                "out_of_stock_count": out_of_stock_count,
+                "category_count": category_count,
+                "total_inventory_value": total_inventory_value,
             }
         )
 
