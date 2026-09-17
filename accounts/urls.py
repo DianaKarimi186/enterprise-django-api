@@ -1,3 +1,4 @@
+from django.contrib.auth.views import LogoutView
 from django.urls import path
 
 from rest_framework_simplejwt.views import (
@@ -9,7 +10,7 @@ from .views import (
     RegisterView,
     RegisterPageView,
     LoginPageView,
-    BrowserLoginView
+    BrowserLoginView,
 )
 
 
@@ -20,7 +21,8 @@ urlpatterns = [
     path("refresh/", TokenRefreshView.as_view(), name="refresh"),
 
     # Browser pages
-    path("browser-login/",BrowserLoginView.as_view(),name="browser-login",),
+    path("browser-login/", BrowserLoginView.as_view(), name="browser-login"),
     path("register-page/", RegisterPageView.as_view(), name="register-page"),
     path("login-page/", LoginPageView.as_view(), name="login-page"),
+    path("logout/", LogoutView.as_view(next_page="/login/"), name="logout"),
 ]
