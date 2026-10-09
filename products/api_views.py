@@ -1,4 +1,4 @@
-from django.db.models import Count, DecimalField, ExpressionWrapper, F, Sum
+from django.db.models import Count, DecimalField, ExpressionWrapper, F, Q, Sum
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -26,8 +26,8 @@ class DashboardMetricsView(APIView):
         totals = products.aggregate(
             total_products=Count("id"),
             total_stock=Sum("stock"),
-            low_stock_count=Count("id", filter=__import__("django.db.models", fromlist=["Q"]).Q(stock__gt=0, stock__lte=5)),
-            out_of_stock_count=Count("id", filter=__import__("django.db.models", fromlist=["Q"]).Q(stock=0)),
+            low_stock_count=Count("id", filter=Q(stock__gt=0, stock__lte=5)),
+            out_of_stock_count=Count("id", filter=Q(stock=0)),
             total_inventory_value=Sum(
                 ExpressionWrapper(
                     F("price") * F("stock"),
