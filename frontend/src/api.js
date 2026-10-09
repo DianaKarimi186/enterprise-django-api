@@ -6,6 +6,7 @@ export function getAccessToken() {
 }
 
 export function saveTokens(tokens) {
+  if (!tokens.access) throw new Error("The login response did not include an access token.");
   sessionStorage.setItem("inventory_access", tokens.access);
   if (tokens.refresh) sessionStorage.setItem("inventory_refresh", tokens.refresh);
 }
@@ -23,10 +24,7 @@ export async function apiRequest(path, options = {}) {
     headers.set("Content-Type", "application/json");
   }
 
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers,
-  });
+  const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
 
   if (response.status === 401) {
     clearTokens();
@@ -60,8 +58,20 @@ export async function login(username, password) {
   return data;
 }
 
-export function listProducts() {
-  return apiRequest("/api/products/?page_size=100");
+export async function listProducts() {
+  const rows = [];
+  let path = "/api/products/";
+  while (path) {
+    const page = await apiRequest(path);
+    if (Array.isArray(page)) return [...rows, ...page];
+    rows.push(...(page.results || []));
+    path = page.next ? new URL(page.next, window.location.origin).pathname + new URL(page.next, window.location.origin).search : "";
+    if (path && API_BASE && page.next.startsWith(API_BASE)) {
+      const parsed = new URL(page.next);
+      path = parsed.pathname + parsed.search;
+    }
+  }
+  return rows;
 }
 
 export function listCategories() {
