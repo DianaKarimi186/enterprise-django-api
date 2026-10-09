@@ -74,8 +74,9 @@ export async function listProducts() {
   return rows;
 }
 
-export function listCategories() {
-  return apiRequest("/api/products/categories/");
+export async function listCategories() {
+  const payload = await apiRequest("/api/products/categories/");
+  return Array.isArray(payload) ? payload : (payload.results || []);
 }
 
 export function getMetrics() {
