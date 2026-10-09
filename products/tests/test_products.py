@@ -291,3 +291,66 @@ class ProductTests(APITestCase):
         mock_async_result.assert_called_once_with(
             "test-task-id-456"
         )
+
+    def test_category_list_requires_authentication(self):
+        from rest_framework.test import APIClient
+
+        anonymous_client = APIClient()
+        response = anonymous_client.get("/api/products/categories/")
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_category_list_returns_categories(self):
+        response = self.client.get("/api/products/categories/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("results", response.data)
+        self.assertEqual(response.data["results"][0]["name"], "Electronics")
+
+    def test_dashboard_metrics_only_include_authenticated_users_products(self):
+        Product.objects.create(
+            owner=self.user,
+            category=self.category,
+            name="Low stock item",
+            description="Low stock test",
+            price="100.00",
+            stock=3,
+        )
+        Product.objects.create(
+            owner=self.user,
+            category=self.category,
+            name="Out of stock item",
+            description="Out of stock test",
+            price="50.00",
+            stock=0,
+        )
+        Product.objects.create(
+            owner=self.user,
+            category=self.category,
+            name="Healthy item",
+            description="Healthy stock test",
+            price="25.00",
+            stock=20,
+        )
+        another_user = User.objects.create_user(
+            username="another",
+            password="Password123!",
+        )
+        Product.objects.create(
+            owner=another_user,
+            category=self.category,
+            name="Private item",
+            description="Belongs to another user",
+            price="999.00",
+            stock=100,
+        )
+
+        response = self.client.get("/api/products/dashboard/metrics/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["total_products"], 3)
+        self.assertEqual(response.data["total_stock"], 23)
+        self.assertEqual(response.data["low_stock_count"], 1)
+        self.assertEqual(response.data["out_of_stock_count"], 1)
+        self.assertEqual(response.data["category_count"], 1)
+        self.assertEqual(float(response.data["total_inventory_value"]), 800.0)

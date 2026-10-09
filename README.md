@@ -128,3 +128,19 @@ Project1/
 ├── schema.yml
 ├── manage.py
 └── README.md
+
+## React frontend
+
+A modern React/Vite dashboard is available in `frontend/`. The existing Django/HTMX pages remain available while the React interface is being validated.
+
+For local development, run the Django API in one terminal and then:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The Vite server proxies `/api` requests to `http://127.0.0.1:8000` by default. Set `DJANGO_API_ORIGIN` to override it.
+
+The production Dockerfile builds the React app and serves its compiled assets through Django/WhiteNoise on the same origin. See [DEPLOYMENT.md](DEPLOYMENT.md) before deploying.
